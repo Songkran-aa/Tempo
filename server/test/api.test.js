@@ -812,3 +812,48 @@ test("calendar feed (.ics): launch dates, running campaigns, time zone, meeting 
   assert.ok(ics.includes(`DTSTART;VALUE=DATE:${ymd(-120)}\r\nDTEND;VALUE=DATE:${ymd(61)}\r\nSUMMARY:📣 Long running`), "a campaign that started months ago but is still running is in the feed");
   assert.ok(ics.includes(`DTSTART;TZID=Asia/Bangkok:${ymd(4)}T090000\r\nDTEND;TZID=Asia/Bangkok:${ymd(4)}T100000`), "a meeting without an end time lasts one hour");
 });
+
+test("platform links: profile links leave 'other links', posts stay, handles become links", async () => {
+  const { sortPlatformLinks, handleOf } = await import("../lib/platform-links.js");
+  const r = { link_ig: "@ig.name", link_tiktok: null, link_x: null, link_fb: null, link_lemon8: null, link_youtube: null,
+    link_other: "https://x.com/xname\ninstagram.com/p/ABC123/\ntiktok.com/@ttname\nhttps://www.facebook.com/fbpage https://www.lemon8-app.com/@l8name\nขอเรทผ่าน LINE ก่อน" };
+  assert.equal(sortPlatformLinks(r), true);
+  assert.equal(r.link_ig, "https://www.instagram.com/ig.name", "a handle in the IG column becomes the profile link");
+  assert.equal(r.link_x, "https://x.com/xname");
+  assert.equal(r.link_tiktok, "https://tiktok.com/@ttname", "missing https:// is added");
+  assert.equal(r.link_fb, "https://www.facebook.com/fbpage");
+  assert.equal(r.link_lemon8, "https://www.lemon8-app.com/@l8name");
+  assert.equal(r.link_other, "instagram.com/p/ABC123/\nขอเรทผ่าน LINE ก่อน", "a post link and a note stay in other links, untouched");
+  const kept = { link_x: "https://x.com/first", link_other: "https://x.com/second" };
+  sortPlatformLinks(kept);
+  assert.deepEqual([kept.link_x, kept.link_other], ["https://x.com/first", "https://x.com/second"], "a filled platform field is never overwritten");
+  assert.equal(handleOf("https://www.tiktok.com/@Some.One?lang=th"), "some.one");
+  assert.equal(handleOf("https://www.tiktok.com/@a/video/123"), null, "a video is not a profile");
+});
+
+test("creator import from another tool: matched by TikTok handle, follower counts refreshed, team data kept", async () => {
+  const ExcelJS = (await import("exceljs")).default;
+  await call("hm", "POST", "/api/auth/register", { first_name: "Handle", last_name: "Match", email: "handlematch@example.com", password: "password123" }, "10.9.9.31");
+  const wid = (await call("hm", "GET", "/api/me")).body.workspaces[0].id;
+  const ex = (await call("hm", "POST", `/api/w/${wid}/influencers`, { name: "Glow Sister", code: "CR-77", link_tiktok: "https://www.tiktok.com/@glow.sister", followers_tiktok: 90000, followers_ig: 300000, notes: "rate 8k / clip", tier: "Macro" })).body.item;
+  const wb = new ExcelJS.Workbook(), ws = wb.addWorksheet("export");
+  ws.addRow(["Account Name", "Link TikTok", "Follower TikTok", "Like รวม", "หมายเหตุ / เงื่อนไข / เรท"]);
+  ws.addRow(["glow.sister (tool name)", "tiktok.com/@Glow.Sister", 150000, 2400000, "imported note"]);
+  ws.addRow(["brand_new_creator", "https://www.tiktok.com/@brand_new_creator", 5000, null, null]);
+  const buf = Buffer.from(await wb.xlsx.writeBuffer());
+  const boundary = "----hm" + Date.now();
+  const payload = Buffer.concat([Buffer.from(`--${boundary}\r\nContent-Disposition: form-data; name="file"; filename="export.xlsx"\r\nContent-Type: application/vnd.openxmlformats-officedocument.spreadsheetml.sheet\r\n\r\n`), buf, Buffer.from(`\r\n--${boundary}--\r\n`)]);
+  const up = async q => JSON.parse((await app.inject({ method: "POST", url: `/api/w/${wid}/influencers/import${q}`, payload, headers: { ...H, cookie: jar.hm, "content-type": `multipart/form-data; boundary=${boundary}` } })).body);
+  const pre = await up("?preview=1");
+  assert.equal(pre.matched, 1);
+  assert.equal(pre.maybeDupes, 0, "a handle match is an update, not a likely duplicate");
+  const res = await up("");
+  assert.deepEqual([res.created, res.updated, res.matched], [1, 1, 1]);
+  const item = (await call("hm", "GET", `/api/w/${wid}/influencers/${ex.id}`)).body.item;
+  assert.equal(item.followers_tiktok, 150000, "follower count refreshed");
+  assert.equal(item.likes_total, 2400000);
+  assert.equal(item.followers_max, 300000, "biggest audience still counts the IG followers we already had");
+  assert.deepEqual([item.name, item.code, item.notes, item.tier], ["Glow Sister", "CR-77", "rate 8k / clip", "Macro"], "what the team typed is kept");
+  const all = (await call("hm", "GET", `/api/w/${wid}/influencers?size=50`)).body.items.map(i => i.name).sort();
+  assert.deepEqual(all, ["Glow Sister", "brand_new_creator"], "no duplicate of the matched creator");
+});

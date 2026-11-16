@@ -1,6 +1,7 @@
 import ExcelJS from "exceljs";
 import JSZip from "jszip";
 import { splitNicheCell } from "./niches.js";
+import { sortPlatformLinks } from "./platform-links.js";
 
 /* ExcelJS turns number cells that carry a date format into Date objects. Very large numbers (e.g. 150M likes)
    overflow into an Invalid Date and the value is lost, so for those cells we read the raw <v> from the sheet XML. */
@@ -86,8 +87,7 @@ export function cellValue(v, numeric = false, preferLink = false) {
   return s ? s : null;
 }
 
-const tierFrom = n => (n == null ? null : n >= 1e6 ? "Mega" : n >= 1e5 ? "Macro" : n >= 1e4 ? "Micro" : "Nano");
-const isUrl = s => { try { const u = new URL(s); return u.protocol === "http:" || u.protocol === "https:"; } catch { return false; } };
+export const tierFrom = n => (n == null ? null : n >= 1e6 ? "Mega" : n >= 1e5 ? "Macro" : n >= 1e4 ? "Micro" : "Nano");
 
 /** Parse a workbook buffer into normalized influencer rows. */
 export async function parseInfluencerWorkbook(buffer, { sheets: onlySheets } = {}) {
@@ -140,7 +140,8 @@ export async function parseInfluencerWorkbook(buffer, { sheets: onlySheets } = {
       if (!rec.name) continue;
       if (map._extra) for (const [col, h] of Object.entries(map._extra)) { const v = cellValue(row.getCell(+col).value); if (v != null) (rec._extra ||= {})[h] = String(v); }
       rec.name = String(rec.name).slice(0, 200);
-      for (const k of LINKS) if (rec[k] && !isUrl(rec[k])) { rec.link_other = [rec.link_other, rec[k]].filter(Boolean).join("\n"); rec[k] = null; }
+      // @handles in a platform column become profile links; profile links in "other links" move to their platform
+      sortPlatformLinks(rec);
       // "บิวตี้, อาหาร" → several niches; a word the workspace doesn't know yet becomes its own niche
       // (labels are matched to the workspace's keys when the rows are saved)
       rec.niches = splitNicheCell(rec.niches).map(w => w.slice(0, 60));

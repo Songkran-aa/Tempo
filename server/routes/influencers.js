@@ -1,7 +1,8 @@
 import { db } from "../db.js";
 import { config } from "../config.js";
 import { access, bad, isUuid, notFound, touch, uuid } from "../lib/core.js";
-import { buildInfluencerWorkbook, parseInfluencerWorkbook } from "../lib/influencer-xlsx.js";
+import { buildInfluencerWorkbook, parseInfluencerWorkbook, tierFrom } from "../lib/influencer-xlsx.js";
+import { PLATFORM_LINKS, handleOf } from "../lib/platform-links.js";
 import { splitContact } from "../lib/contact-split.js";
 import { ensureNiches, loadNiches, resolveKeys } from "../lib/niches.js";
 import { contactSuggestions, contactRest, countLikelyDupes, dupeGroups, findDupes, mergeCreators } from "../lib/creator-tools.js";
@@ -47,8 +48,53 @@ async function resolveImportNiches(q, wid, rows) {
   return out;
 }
 
-export async function importInfluencers(q, wid, userId, rows) {
+/* ---------- files from outside Tempo (Kalodata, agency lists …): match creators by their platform handle ---------- */
+const PLAT_FOLLOWERS = ["followers_ig", "followers_tiktok", "followers_fb", "followers_lemon8", "followers_x", "followers_youtube"];
+// what an outside file may refresh on a creator it matched by handle; everything else only fills fields that are empty
+const REFRESH = new Set([...PLAT_FOLLOWERS, "followers_max", "likes_total"]);
+const HANDLE_FIELDS = PLATFORM_LINKS.map(p => p.field);
+const empty = v => v == null || v === "" || (Array.isArray(v) && !v.length) || (typeof v === "object" && !Array.isArray(v) && !Object.keys(v).length);
+
+/**
+ * Rows without a Tempo ID that this workspace doesn't know (a file exported from another tool) are matched to an
+ * existing creator through the same TikTok / IG / X / YouTube / Lemon8 / Facebook handle, so a re-import refreshes
+ * follower counts instead of creating a duplicate. A handle shared by two creators is ambiguous and never matched.
+ */
+export async function matchByHandle(q, wid, rows, { unknownCodes = false } = {}) {
+  const { rows: existing } = await q.query(`select ${IMPORT_COLS.join(", ")} from influencers where workspace_id=$1`, [wid]);
+  const codes = new Set(existing.map(e => e.code));
+  const byHandle = new Map();
+  for (const e of existing) for (const f of HANDLE_FIELDS) {
+    const h = handleOf(e[f]); if (!h) continue;
+    const k = f + ":" + h;
+    byHandle.set(k, byHandle.has(k) && byHandle.get(k) !== e ? null : e);
+  }
+  let matched = 0;
+  const out = rows.map(r => {
+    // rows with an ID of their own are matched by that ID (a Tempo file links collaborations by it); only rows without one
+    // (the parser gives them IMP-…), or any unknown ID when the caller asks (creator file upload), are matched by handle
+    if (codes.has(r.code) || !(unknownCodes || String(r.code).startsWith("IMP-"))) return r;
+    const hit = HANDLE_FIELDS.map(f => { const h = handleOf(r[f]); return h ? byHandle.get(f + ":" + h) : undefined; }).find(Boolean);
+    if (!hit) return r;
+    matched++;
+    const m = { ...r, code: hit.code, name: hit.name };
+    for (const c of IMPORT_COLS) {
+      if (c === "code" || c === "name" || REFRESH.has(c) || c === "blacklisted") continue;
+      if (!empty(hit[c])) m[c] = c === "niches" ? [] : c === "extra" ? {} : null; // keep what the team already has
+    }
+    // biggest audience across the platforms we now know; the tier follows it when it was the automatic one
+    const fol = PLAT_FOLLOWERS.map(c => m[c] ?? hit[c]).filter(n => n != null).map(Number);
+    if (fol.length) m.followers_max = Math.max(...fol, ...(m.followers_max != null ? [Number(m.followers_max)] : []));
+    if (empty(hit.tier) || hit.tier === tierFrom(hit.followers_max)) m.tier = tierFrom(m.followers_max ?? hit.followers_max);
+    return m;
+  });
+  return { rows: out, matched };
+}
+
+export async function importInfluencers(q, wid, userId, rows, opts = {}) {
   let created = 0, updated = 0;
+  const m = await matchByHandle(q, wid, rows, opts);
+  rows = m.rows;
   const cols = IMPORT_COLS;
   const sql = `insert into influencers (id, workspace_id, created_by, ${cols.join(", ")})
     values ($1, $2, $3, ${cols.map((c, i) => `$${i + 4}${JSONB.has(c) ? "::jsonb" : ""}`).join(", ")})
@@ -68,7 +114,7 @@ export async function importInfluencers(q, wid, userId, rows) {
     const { rows: out } = await q.query(sql, [uuid(), wid, userId, ...cols.map(c => (c === "blacklisted" ? Boolean(r[c]) : JSONB.has(c) ? JSON.stringify(r[c] || (c === "extra" ? {} : [])) : r[c] ?? null))]);
     if (out[0]?.inserted) created++; else updated++;
   }
-  return { created, updated };
+  return { created, updated, matched: m.matched };
 }
 
 export default async function influencerRoutes(app) {
@@ -235,11 +281,12 @@ export default async function influencerRoutes(app) {
     if (!parsed.rows.length) throw bad("xlsx_empty", "No influencer rows were found (need an 'Account Name' column)");
     const preview = req.query?.preview === "1";
     if (preview) {
-      const maybeDupes = await countLikelyDupes(db, wid, parsed.rows);
-      return { preview: true, total: parsed.rows.length, sheets: parsed.sheets, blacklisted: parsed.blacklistCount, maybeDupes };
+      const m = await matchByHandle(db, wid, parsed.rows, { unknownCodes: true }); // rows that will update a creator found by handle are not duplicates
+      const maybeDupes = await countLikelyDupes(db, wid, m.rows);
+      return { preview: true, total: parsed.rows.length, sheets: parsed.sheets, blacklisted: parsed.blacklistCount, maybeDupes, matched: m.matched };
     }
     return db.tx(async q => {
-      const res = await importInfluencers(q, wid, req.user.id, parsed.rows);
+      const res = await importInfluencers(q, wid, req.user.id, parsed.rows, { unknownCodes: true });
       const rev = await touch(q, wid, req.user.id, "import", "influencers", null, `${parsed.rows.length} influencers`);
       return { ...res, total: parsed.rows.length, sheets: parsed.sheets, blacklisted: parsed.blacklistCount, rev };
     });

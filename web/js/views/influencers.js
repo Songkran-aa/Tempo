@@ -39,11 +39,13 @@ const reloadSoon = debounce(() => loadInfluencers(true), 280);
 const platBadge = (k, followers, url) => {
   const label = `${brandName(k)}${followers ? " · " + fmtNum(followers) : ""}`;
   return url ? `<a class="plat-logo" href="${esc(url)}" target="_blank" rel="noopener noreferrer" title="${esc(label)}" aria-label="${esc(label)}">${brandBadge(k, 24)}</a>`
-    : `<span class="plat-logo" title="${esc(label)}" aria-label="${esc(label)}">${brandBadge(k, 24)}</span>`;
+    // follower count known but no link: dimmed, so it does not look like something to tap
+    : `<span class="plat-logo no-link" title="${esc(label + " · " + t("inf.noLink"))}" aria-label="${esc(label + " · " + t("inf.noLink"))}">${brandBadge(k, 24)}</span>`;
 };
-const platformLinks = r => [["tiktok", "link_tiktok", "followers_tiktok"], ["instagram", "link_ig", "followers_ig"], ["facebook", "link_fb", "followers_fb"],
+// a profile link still kept in "other links" (older records) opens from the logo too
+const platformLinks = r => { const other = splitOtherLinks(r).links; return [["tiktok", "link_tiktok", "followers_tiktok"], ["instagram", "link_ig", "followers_ig"], ["facebook", "link_fb", "followers_fb"],
   ["youtube", "link_youtube", "followers_youtube"], ["x", "link_x", "followers_x"], ["lemon8", "link_lemon8", "followers_lemon8"]]
-  .map(([k, l, n]) => (safeUrl(r[l]) ? platBadge(k, r[n], safeUrl(r[l])) : r[n] != null ? platBadge(k, r[n]) : "")).join("");
+  .map(([k, l, n]) => { const u = safeUrl(r[l] || other[l]); return u ? platBadge(k, r[n], u) : r[n] != null ? platBadge(k, r[n]) : ""; }).join(""); };
 const tierColor = k => byKey(TIERS, k)?.color || "gray";
 // the main niche's emoji when the creator has one, otherwise the first letter of the account name
 const avatarText = (petType, name) => nicheOf(petType)?.emoji || (String(name || "?").replace(/^[@._\-\d]+/, "")[0] || "?").toUpperCase();
@@ -166,11 +168,12 @@ const PIPE_PAGE = 60;
 /* ---------- creator form: tick the platforms and contact channels a creator actually has ---------- */
 // A typed @handle becomes the profile link; a pasted link is kept as is.
 const PLATS = [
-  { k: "tiktok", link: "link_tiktok", fol: "followers_tiktok", base: "https://www.tiktok.com/@", at: true, re: /tiktok\.com/i },
-  { k: "instagram", link: "link_ig", fol: "followers_ig", base: "https://www.instagram.com/", at: false, re: /instagram\.com|instagr\.am/i },
-  { k: "facebook", link: "link_fb", fol: "followers_fb", base: "https://www.facebook.com/", at: false, re: /facebook\.com|fb\.com|fb\.me/i },
-  { k: "youtube", link: "link_youtube", fol: "followers_youtube", base: "https://www.youtube.com/@", at: true, re: /youtube\.com|youtu\.be/i },
-  { k: "x", link: "link_x", fol: "followers_x", base: "https://x.com/", at: false, re: /(^|\/\/|\.)(x|twitter)\.com/i },
+  // post: links on that site that point at a post / video, not at the creator's profile
+  { k: "tiktok", link: "link_tiktok", fol: "followers_tiktok", base: "https://www.tiktok.com/@", at: true, re: /tiktok\.com/i, post: /\/video\/|\/photo\/|\/\/(vt|vm)\./i },
+  { k: "instagram", link: "link_ig", fol: "followers_ig", base: "https://www.instagram.com/", at: false, re: /instagram\.com|instagr\.am/i, post: /\.(com|am)\/(p|reel|reels|tv|stories|explore|s)\//i },
+  { k: "facebook", link: "link_fb", fol: "followers_fb", base: "https://www.facebook.com/", at: false, re: /facebook\.com|fb\.com|fb\.me/i, post: /\/(posts|videos|photos|reel|watch)\//i },
+  { k: "youtube", link: "link_youtube", fol: "followers_youtube", base: "https://www.youtube.com/@", at: true, re: /youtube\.com|youtu\.be/i, post: /\/(watch|shorts|playlist|embed)\b|youtu\.be/i },
+  { k: "x", link: "link_x", fol: "followers_x", base: "https://x.com/", at: false, re: /(^|\/\/|\.)(x|twitter)\.com/i, post: /\/status\//i },
   { k: "lemon8", link: "link_lemon8", fol: "followers_lemon8", base: "https://www.lemon8-app.com/@", at: true, re: /lemon8/i }
 ];
 const toLink = (pl, v) => {
@@ -192,8 +195,10 @@ const toHandle = (pl, url) => {
 function splitOtherLinks(x) {
   const out = {}, rest = [];
   for (const line of String(x.link_other || "").split(/\n+/).map(l => l.trim()).filter(Boolean)) {
-    const pl = PLATS.find(q => q.re.test(line) && !x[q.link] && !out[q.link]);
-    if (pl && /^https?:\/\//i.test(line)) out[pl.link] = line; else rest.push(line);
+    // "tiktok.com/@a" typed without https:// counts too; a post / video / short link is not the creator's profile
+    const url = /^https?:\/\//i.test(line) ? line : /^(www\.)?[\w-]+(\.[\w-]+)+\/\S*$/i.test(line) ? "https://" + line : null;
+    const pl = url && PLATS.find(q => q.re.test(url) && !(q.post && q.post.test(url)) && !x[q.link] && !out[q.link]);
+    if (pl) out[pl.link] = url; else rest.push(line);
   }
   return { links: out, other: rest.join("\n") };
 }
@@ -495,10 +500,10 @@ async function importFile(file) {
     island(t("inf.reading"), "upload", "blue");
     const pre = await api("POST", `/w/${S.wid}/influencers/import?preview=1`, fd());
     const sheets = pre.sheets.filter(s => !s.blacklist).map(s => `${s.name} ${s.rows}`).join(" · ");
-    if (!await askConfirm(t("inf.importConfirm", { n: pre.total }), `${sheets}\nBlacklist ${pre.blacklisted}\n\n${t("inf.importMerge")}${pre.maybeDupes ? "\n\n" + t("dup.import", { n: pre.maybeDupes }) : ""}`, t("inf.importBtn"), false)) return;
+    if (!await askConfirm(t("inf.importConfirm", { n: pre.total }), `${sheets}\nBlacklist ${pre.blacklisted}\n\n${t("inf.importMerge")}${pre.matched ? "\n\n" + t("inf.importMatched", { n: pre.matched }) : ""}${pre.maybeDupes ? "\n\n" + t("dup.import", { n: pre.maybeDupes }) : ""}`, t("inf.importBtn"), false)) return;
     const r = await api("POST", `/w/${S.wid}/influencers/import`, fd());
     await reload(); await loadInfluencers(true);
-    island(t("inf.imported", { c: r.created, u: r.updated }), "upload", "green");
+    island(t("inf.imported", { c: r.created, u: r.updated }) + (r.matched ? " · " + t("inf.importedMatched", { n: r.matched }) : ""), "upload", "green");
   } catch (e) { fail(e); }
 }
 async function exportXlsx() {

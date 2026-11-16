@@ -1,6 +1,6 @@
 {
   "name": "tempo",
-  "version": "1.11.2",
+  "version": "1.12.0",
   "description": "Tempo — plan campaigns, manage influencers, launch together",
   "main": "server/index.js",
   "scripts": {

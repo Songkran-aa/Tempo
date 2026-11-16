@@ -22,7 +22,7 @@ const ws = (await db.query(
 if (!ws) { console.error("Workspace not found"); process.exit(1); }
 const parsed = await parseInfluencerWorkbook(fs.readFileSync(file));
 const res = await db.tx(async q => {
-  const r = await importInfluencers(q, ws.id, user.id, parsed.rows);
+  const r = await importInfluencers(q, ws.id, user.id, parsed.rows, { unknownCodes: true });
   await touch(q, ws.id, user.id, "import", "influencers", null, `${parsed.rows.length} influencers`);
   return r;
 });

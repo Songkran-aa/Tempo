@@ -646,3 +646,8 @@ button.nrep-row:hover{background:var(--fill-2)}
 @media (max-width:420px){ .inf-hero>.grow{flex:1 1 calc(100% - 96px)} }
 /* phones: every bottom sheet (including .wide forms) spans the full width — .wide's 24px inset left it off-centre */
 @media (max-width:900px){ .sheet.wide{width:100%;max-width:100%} }
+/* platform logos: one with a follower count but no link is dimmed (nothing to open) */
+.plat-logo.no-link{opacity:.38;filter:grayscale(.7);cursor:default}
+/* platform / contact picker tiles: logo + name centred, the check mark keeps its corner */
+.pick{justify-content:center;padding:0 22px 0 8px;gap:6px}
+.pick>span{flex:0 1 auto}
