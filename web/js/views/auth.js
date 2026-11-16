@@ -9,21 +9,10 @@ export function renderAuth() {
   document.documentElement.classList.add("auth-mode");
   $("root").innerHTML = `<div class="auth">
     <section class="auth-brand-panel" aria-hidden="true">
-      <div class="ab-inner">
-        <div class="ab-logo">${logoImg(40)}<b>Tempo</b></div>
-        <div class="ab-main">
-        <div class="ab-copy">
-          <p class="ab-eyebrow">${t("auth.heroEyebrow")}</p>
-          <h2>${t("auth.heroTitle")}</h2>
-          <p class="ab-lead">${t("auth.heroText")}</p>
-        </div>
-        <ul class="ab-features">
-          ${[["folder", "auth.f1Title", "auth.f1Text"], ["star", "auth.f2Title", "auth.f2Text"], ["wallet", "auth.f3Title", "auth.f3Text"], ["calendar", "auth.f4Title", "auth.f4Text"]]
-            .map(([ic, title, text]) => `<li><span class="ab-fic">${icon(ic, 18)}</span><div><b>${t(title)}</b><span>${t(text)}</span></div></li>`).join("")}
-        </ul>
-        </div>
-        <p class="ab-foot">${t("auth.heroFoot")}</p>
-      </div>
+      <div class="ab-logo">${logoImg(32)}<b>Tempo</b></div>
+      <h2 class="ab-title">${t("auth.heroTitle")}</h2>
+      <!-- the product itself (a made-up workspace), in the viewer's language and theme -->
+      <div class="ab-shot"><img src="/assets/login/tempo-${getLang() === "th" ? "th" : "en"}-${document.documentElement.dataset.theme === "dark" ? "dark" : "light"}.webp" alt="" width="1262" height="800" loading="lazy" decoding="async"></div>
     </section>
     <section class="auth-form-panel">
       <div class="auth-top">

@@ -658,33 +658,19 @@ html.pop-open,html:has(dialog[open]){overflow:hidden}
   .board>*{scroll-snap-align:start}
 }
 
-/* ---------- sign-in: brand panel (desktop) ----------
-   Calm and explanatory: what Tempo is, the four things it does, where the data lives. No decorative cards. */
-.auth-brand-panel{position:relative;overflow:hidden;display:flex;color:#E8E8F0;padding:clamp(36px,4.5vw,72px) clamp(36px,5vw,84px);
-  background:
-    radial-gradient(900px 520px at -10% -15%,rgba(var(--accent-rgb,88,86,214),.30),transparent 62%),
-    radial-gradient(700px 420px at 110% 115%,rgba(var(--accent-rgb,88,86,214),.14),transparent 60%),
-    radial-gradient(rgba(255,255,255,.055) 1px,transparent 1.2px) 0 0/22px 22px,
-    #0C0D18}
-.auth-brand-panel::after{content:"";position:absolute;inset:0;border-right:1px solid rgba(255,255,255,.06);pointer-events:none}
-.ab-inner{position:relative;display:flex;flex-direction:column;justify-content:space-between;gap:clamp(24px,4vh,48px);width:100%;max-width:600px;min-height:100%}
-.ab-logo{display:flex;align-items:center;gap:12px}
-.ab-logo b{font-size:20px;font-weight:750;letter-spacing:-.02em;color:#fff}
-.ab-copy{max-width:540px}
-.ab-eyebrow{margin:0 0 14px;font-size:12.5px;font-weight:650;letter-spacing:.08em;text-transform:uppercase;color:color-mix(in srgb,rgb(var(--accent-rgb,88,86,214)) 55%,#fff)}
-.ab-copy h2{margin:0 0 16px;font-size:clamp(30px,3.1vw,46px);font-weight:750;letter-spacing:-.03em;line-height:1.14;color:#fff;text-wrap:balance}
-.ab-lead{margin:0;font-size:clamp(15px,1.15vw,17px);line-height:1.6;color:rgba(232,232,240,.68);max-width:500px;text-wrap:pretty}
-.ab-features{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
-.ab-features li{display:flex;gap:12px;align-items:flex-start;padding:16px;border-radius:16px;background:rgba(255,255,255,.035);border:1px solid rgba(255,255,255,.07)}
-.ab-fic{flex:none;display:grid;place-items:center;width:34px;height:34px;border-radius:10px;color:color-mix(in srgb,rgb(var(--accent-rgb,88,86,214)) 45%,#fff);background:rgba(var(--accent-rgb,88,86,214),.18)}
-.ab-features b{display:block;font-size:14.5px;font-weight:650;color:#fff;margin-bottom:3px}
-.ab-features span{display:block;font-size:13px;line-height:1.5;color:rgba(232,232,240,.58)}
-.ab-foot{margin:0;font-size:12.5px;color:rgba(232,232,240,.42)}
-.ab-main{display:flex;flex-direction:column;gap:clamp(24px,4.5vh,44px)}
-@media (max-height:760px){ .ab-features li{padding:12px 14px} .ab-copy h2{margin-bottom:10px} .ab-eyebrow{margin-bottom:10px} }
-@media (max-height:600px){ .ab-features li>div>span{display:none} .ab-features li{align-items:center} }
-@media (max-width:1180px) and (min-width:981px){ .ab-features{grid-template-columns:1fr} }
 /* the sign-in screen never scrolls on desktop: no empty scrollbar gutter on its right edge */
 html.auth-mode{scrollbar-gutter:auto}
-.ab-copy h2{white-space:pre-line}
-html[lang="th"] .ab-eyebrow,.ab-eyebrow:lang(th){letter-spacing:.01em;text-transform:none;font-size:13px}
+
+/* ---------- sign-in: brand panel (desktop) — the product itself ----------
+   Logo, one plain sentence, and a real screenshot of Tempo (made-up workspace) that runs off the right and bottom
+   edges. No decoration: the screenshot does the explaining. */
+.auth-brand-panel{display:flex;flex-direction:column;overflow:hidden;min-height:0;padding:44px 0 0 clamp(36px,4.2vw,64px);background:#ECEBF2;border-right:1px solid var(--hairline)}
+:root[data-theme="dark"] .auth-brand-panel{background:#101016}
+.ab-logo{display:flex;align-items:center;gap:10px;flex:none}
+.ab-logo b{font-size:18px;font-weight:700;letter-spacing:-.01em;color:var(--label)}
+.ab-title{flex:none;margin:clamp(28px,6vh,64px) clamp(36px,4vw,64px) clamp(24px,4vh,40px) 0;max-width:560px;font-size:clamp(24px,2.3vw,34px);font-weight:700;line-height:1.28;letter-spacing:-.02em;color:var(--label);text-wrap:balance}
+.ab-shot{flex:1;min-height:0;position:relative}
+.ab-shot img{position:absolute;top:0;left:0;display:block;height:max(calc(100% + 24px),520px);width:auto;max-width:none;border-radius:14px 0 0 0;border:1px solid rgba(0,0,0,.08);border-right:0;border-bottom:0;
+  box-shadow:0 30px 70px -24px rgba(30,25,70,.28),0 2px 6px rgba(30,25,70,.06);background:#fff}
+:root[data-theme="dark"] .ab-shot img{border-color:rgba(255,255,255,.1);box-shadow:0 30px 80px -20px rgba(0,0,0,.7);background:#000}
+@media (max-width:980px){ .auth-brand-panel{display:none} }
