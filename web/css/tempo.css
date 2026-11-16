@@ -591,3 +591,58 @@ button.nrep-row:hover{background:var(--fill-2)}
 .dw-head small{display:block;color:var(--label-2);font-size:12.5px;margin-top:2px}
 .dupe-warn .dup-mem{border-top-color:color-mix(in srgb,var(--orange) 25%,transparent);flex-wrap:wrap}
 .dup-why-sm{font-size:12px;color:var(--orange);font-weight:600}
+
+/* ---------- sign-in / sign-up on phones and short screens ----------
+   The generic phone rules give every .field label a 96–104px column and stack .field-pair; on the auth form
+   the "label" is an 18px icon and the pair is first/last name, so both are pinned here (higher specificity). */
+.auth .fgroup .field>span:not(.switch){width:22px;flex:none;font-size:inherit}
+.auth .fgroup .field{gap:10px;padding:6px 14px}
+.auth .field-pair{grid-template-columns:minmax(0,1fr) minmax(0,1fr)}
+.auth .field-pair .field+.field{border-left:1px solid var(--hairline)}
+.auth .field-pair .field:first-child>span{display:grid}
+.auth .field-pair .field:last-child{padding:6px 14px}
+.auth .seg button{height:40px;font-size:14.5px}
+.auth .pw-toggle{width:40px;height:40px;margin:-6px -8px -6px 0}
+.remember .switch.sm{margin-right:-10px}
+.remember{min-height:40px}
+/* phones / short windows: the page scrolls (keyboard open, landscape, small phones) instead of clipping the form */
+@media (max-width:980px),(max-height:640px){
+  html.auth-mode,html.auth-mode body{height:auto;min-height:100%;overflow:visible;overflow-x:hidden}
+  .auth{height:auto;min-height:100vh;min-height:100dvh;overflow:visible}
+  .auth-form-panel{overflow:visible;justify-content:flex-start;padding:max(64px,env(safe-area-inset-top)) max(20px,env(safe-area-inset-right)) max(20px,env(safe-area-inset-bottom)) max(20px,env(safe-area-inset-left))}
+  .auth-card{margin:auto 0}
+  .auth-top{top:max(14px,env(safe-area-inset-top));right:max(16px,env(safe-area-inset-right))}
+  .auth-foot{position:static;margin-top:24px}
+}
+@media (max-width:340px){
+  .auth .field-pair{grid-template-columns:1fr}
+  .auth .field-pair .field+.field{border-left:0}
+  .auth .field-pair .field+.field::before{display:block}
+  .auth .field-pair .field:last-child{padding-left:46px}
+}
+
+/* ---------- phone polish (mobile audit) ---------- */
+/* iOS Safari zooms the page into any text control under 16px (sort chips, inline edits, sheets) */
+@media (max-width:900px){
+  input:not([type=checkbox]):not([type=radio]):not([type=range]):not([type=color]),select,textarea{font-size:max(16px,1em)!important}
+}
+/* the round "done" checkbox is small: give it a 44px touch area without changing its look */
+.check{position:relative}
+.check::after{content:"";position:absolute;inset:-9px;border-radius:50%}
+/* timeline: creator post stars sit under the campaign bar instead of on top of its text */
+.g-row .g-star{top:auto;bottom:3px;transform:translateX(-50%);font-size:12px}
+/* timeline: long project names stop at three lines */
+.g-group .g-label a{display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden;overflow-wrap:anywhere}
+/* auth footnote: the lock icon stays with the first word when the text wraps */
+.auth-note{display:block;text-align:center}
+.auth-note .ic{display:inline-block;vertical-align:-2px;margin-right:4px}
+/* inventory card on narrow phones: stock + quick buttons wrap inside the card */
+@media (max-width:420px){
+  .prod-row .r-end{flex-wrap:wrap;row-gap:6px;min-width:0;max-width:100%}
+  .r-end>.mini-btn.lbl+.mini-btn.lbl{margin-left:0}
+}
+@media (max-width:350px){ .prod-row .mini-btn.lbl{padding:0 10px} .prod-row .mini-btn.lbl span{display:none} }
+/* creator profile header: on narrow phones the follower count moves under the name so the name has room */
+@media (max-width:420px){ .inf-hero>.grow{flex:1 1 calc(100% - 96px)} }
+/* phones: every bottom sheet (including .wide forms) spans the full width — .wide's 24px inset left it off-centre */
+@media (max-width:900px){ .sheet.wide{width:100%;max-width:100%} }
