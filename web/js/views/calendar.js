@@ -1,6 +1,6 @@
 // Team calendar: one month view of everything with a date (tasks, milestones, campaigns, creator posts,
 // meetings, contract ends, payment due dates) + meetings with attendees + a personal .ics subscription.
-import { S, D, esc, icon, uid, isDone, proj, chOf, byKey, COLLAB_ST, canEdit, todayISO, addDays, firstOfMonth, fmtLong, partner, money, modOn } from "../core.js";
+import { S, D, esc, icon, uid, isDone, proj, chOf, byKey, COLLAB_ST, canEdit, todayISO, addDays, firstOfMonth, fmtLong, partner, money, modOn, isLaunchMs } from "../core.js";
 import { t, getLang } from "../i18n.js";
 import { pageHead, F, group, projectOpts, openSheet, island, chipBtn, avatar, commentsBox, copyText } from "../ui.js";
 import { create, update, destroy, hooks } from "../store.js";
@@ -15,16 +15,21 @@ export const LAYERS = [
 export function calendarItems(from, to) {
   const d = D(), out = [], inR = x => x && x >= from && x <= to;
   const push = (layer, date, o) => { if (inR(date)) out.push({ layer, d: date, ...o }); };
-  (d.events || []).forEach(e => push("events", e.event_date, { title: e.title, time: e.start_time, color: "accent", ic: "users", act: `data-act="editEvent" data-id="${e.id}"`, mine: (e.attendees || []).includes(S.user.id) }));
-  d.tasks.filter(x => !isDone(x)).forEach(x => push("tasks", x.due_date, { title: x.title, color: proj(x.project_id)?.color || "blue", ic: "checklist", act: `data-act="editTask" data-id="${x.id}"`, mine: x.assignee_id === S.user.id }));
-  d.projects.forEach(p => (p.milestones || []).filter(m => m.date && !m.done).forEach(m => push("tasks", m.date, { title: `${m.label} · ${p.name}`, color: p.color || "indigo", ic: "diamond", act: `data-act="goProject" data-id="${p.id}" data-tab="milestones"` })));
+  (d.events || []).forEach(e => push("events", e.event_date, { title: e.title, time: e.start_time, sub: [e.location, proj(e.project_id)?.name].filter(Boolean).join(" · "), color: "accent", ic: "users", act: `data-act="editEvent" data-id="${e.id}"`, mine: (e.attendees || []).includes(S.user.id) }));
+  d.tasks.filter(x => !isDone(x)).forEach(x => push("tasks", x.due_date, { title: x.title, sub: proj(x.project_id)?.name || "", color: proj(x.project_id)?.color || "blue", ic: "checklist", act: `data-act="editTask" data-id="${x.id}"`, mine: x.assignee_id === S.user.id }));
+  d.projects.forEach(p => {
+    (p.milestones || []).filter(m => m.date && !m.done).forEach(m => push("tasks", m.date, { title: `${m.label} · ${p.name}`, color: p.color || "indigo", ic: "diamond", act: `data-act="goProject" data-id="${p.id}" data-tab="milestones"` }));
+    // a launch date with no dated launch milestone (removed from the list, imported, set through the API) still shows — as on the timeline
+    const lm = (p.milestones || []).find(isLaunchMs);
+    if (p.launch_date && !(lm && lm.date === p.launch_date)) push("tasks", p.launch_date, { title: `${t("project.launchOn", { date: "" }).trim()} · ${p.name}`, color: p.color || "indigo", ic: "flag", act: `data-act="goProject" data-id="${p.id}"` });
+  });
   d.campaigns.forEach(c => {
     push("marketing", c.start_date, { title: t("home.campaignStarts", { name: c.name }), color: chOf(c.channel).color, ic: "megaphone", act: `data-act="editCamp" data-id="${c.id}"` });
     if (c.end_date && c.end_date !== c.start_date) push("marketing", c.end_date, { title: t("erp.campaignEnds", { name: c.name }), color: chOf(c.channel).color, ic: "flag", act: `data-act="editCamp" data-id="${c.id}"` });
   });
   d.collaborations.filter(c => !["posted", "completed", "declined"].includes(c.status)).forEach(c => push("marketing", c.post_date, { title: t("home.creatorPosts", { name: c.influencer_name }), color: "violet", ic: "star", act: `data-act="editCollab" data-id="${c.id}"`, sub: byKey(COLLAB_ST, c.status)?.label }));
   (d.expenses || []).filter(e => ["pending", "approved"].includes(e.status)).forEach(e => push("finance", e.due_date, { title: t("erp.paymentDue", { name: e.title }), color: "orange", ic: "receipt", act: `data-act="editExpense" data-id="${e.id}"`, sub: money(e.amount) }));
-  (d.contracts || []).filter(c => c.status === "active").forEach(c => push("partners", c.end_date, { title: t("erp.contractEnds", { name: c.title }), color: "teal", ic: "file", act: `data-act="editContract" data-id="${c.id}"`, sub: partner(c.partner_id)?.name }));
+  if (modOn("partners")) (d.contracts || []).filter(c => c.status === "active").forEach(c => push("partners", c.end_date, { title: t("erp.contractEnds", { name: c.title }), color: "teal", ic: "file", act: `data-act="editContract" data-id="${c.id}"`, sub: partner(c.partner_id)?.name }));
   return out.sort((a, b) => a.d.localeCompare(b.d) || (a.time || "99").localeCompare(b.time || "99"));
 }
 
@@ -99,7 +104,8 @@ export async function ensureCalToken(rotate = false) {
 export const calendarActions = {
   newEvent: el => editEvent(null, { date: el.dataset.date, project_id: el.dataset.project }),
   editEvent: el => editEvent(el.dataset.id),
-  calMove: el => { S.ui.calMonth = firstOfMonth(S.ui.calMonth, +el.dataset.v); hooks.render(); },
+  // the selected day follows the month: today when it is in that month, otherwise the 1st (the agenda never shows a day off the grid)
+  calMove: el => { S.ui.calMonth = firstOfMonth(S.ui.calMonth, +el.dataset.v); const td = todayISO(); S.ui.calDay = td.slice(0, 7) === S.ui.calMonth.slice(0, 7) ? td : S.ui.calMonth; hooks.render(); },
   calToday: () => { S.ui.calMonth = firstOfMonth(todayISO()); S.ui.calDay = todayISO(); hooks.render(); },
   calPick: (el, e) => { S.ui.calDay = el.dataset.v; if (el.dataset.v.slice(0, 7) !== S.ui.calMonth.slice(0, 7)) S.ui.calMonth = firstOfMonth(el.dataset.v); hooks.render(); },
   calLayer: el => { S.ui.calOff[el.dataset.v] = !S.ui.calOff[el.dataset.v]; hooks.render(); },

@@ -1,8 +1,9 @@
-import { S, D, esc, icon, iconInline, isDone, bucketOf, BUCKETS, proj, sortTasks, todayISO, fmtLong, relDay, fmtNum, chOf, byKey, COLLAB_ST, TIERS, canEdit, projStats, fmtDate, isGuest, money, moneyShort, daysTo, CAMP_ST } from "../core.js";
+import { S, D, esc, icon, iconInline, isDone, bucketOf, BUCKETS, proj, sortTasks, todayISO, fmtLong, relDay, fmtNum, chOf, byKey, COLLAB_ST, TIERS, canEdit, projStats, fmtDate, isGuest, money, moneyShort, daysTo, CAMP_ST, addDays } from "../core.js";
 import { t } from "../i18n.js";
 import { pageHead, empty, ringSm, avatar } from "../ui.js";
 import { taskRow } from "./tasks.js";
 import { erpHomeCard } from "./inbox.js";
+import { calendarItems } from "./calendar.js";
 import { myApprovals, campaignActual } from "./finance.js";
 
 export function projCard(p) {
@@ -53,13 +54,8 @@ export function viewHome() {
   const mineCard = `<div class="card glass span-2 list-card"><div class="card-head"><h3>${icon("checklist", 18)}${mineTitle}</h3><button class="text-btn" data-act="mineAll">${t("common.seeAll")}</button></div>
     <div class="list">${mine.map(x => taskRow(x)).join("") || `<div class="empty-row">${t("home.allClear")}</div>`}</div></div>`;
 
-  const ev = [];
-  open.filter(x => x.due_date).forEach(x => ev.push({ d: x.due_date, title: x.title, sub: proj(x.project_id)?.name || t("nav.tasks"), color: proj(x.project_id)?.color || "gray", ic: "checklist", act: `data-act="editTask" data-id="${x.id}"` }));
-  d.projects.forEach(p => (p.milestones || []).filter(m => m.date && !m.done).forEach(m => ev.push({ d: m.date, title: m.label, sub: p.name, color: p.color, ic: "diamond", act: `data-act="goProject" data-id="${p.id}" data-tab="milestones"` })));
-  d.campaigns.forEach(c => { if (c.start_date && c.status !== "done") ev.push({ d: c.start_date, title: t("home.campaignStarts", { name: c.name }), sub: chOf(c.channel).label, color: chOf(c.channel).color, ic: "megaphone", act: `data-act="editCamp" data-id="${c.id}"` }); });
-  d.collaborations.forEach(c => { if (c.post_date && !["posted", "completed", "declined"].includes(c.status)) ev.push({ d: c.post_date, title: t("home.creatorPosts", { name: c.influencer_name }), sub: byKey(COLLAB_ST, c.status)?.label, color: "violet", ic: "star", act: `data-act="editCollab" data-id="${c.id}"` }); });
-  (d.events || []).forEach(e => ev.push({ d: e.event_date, title: e.title, sub: [e.start_time, e.location].filter(Boolean).join(" · ") || t("nav.calendar"), color: "accent", ic: "users", act: `data-act="editEvent" data-id="${e.id}"` }));
-  const up = ev.filter(e => e.d >= today).sort((a, b) => a.d.localeCompare(b.d)).slice(0, 6);
+  // same source as the calendar, so "up next" and the calendar always agree (payments due, campaign ends, contracts, launch dates too)
+  const up = calendarItems(today, addDays(today, 120)).map(e => ({ ...e, sub: [e.time, e.sub].filter(Boolean).join(" · ") })).slice(0, 6);
   const upCard = `<div class="card glass span-2 list-card"><div class="card-head"><h3>${icon("calendar", 18)}${t("home.upNext")}</h3><a class="text-btn" href="#calendar">${t("nav.calendar")}</a></div>
     <div class="list">${up.map(e => `<button class="row" ${e.act} style="--inset:58px"><span class="r-icon c-${e.color}">${icon(e.ic, 15, 2.2)}</span><div class="r-main"><span class="r-title">${esc(e.title)}</span><span class="r-sub">${esc(e.sub || "")}</span></div><span class="r-end">${relDay(e.d)}</span></button>`).join("") || `<div class="empty-row">${t("home.noUpcoming")}</div>`}</div></div>`;
 

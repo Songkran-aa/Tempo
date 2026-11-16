@@ -793,3 +793,22 @@ test("duplicates: warn on a likely duplicate, list groups, merge keeps everythin
   assert.equal((await call("dp", "GET", `/api/w/${wid}/influencers/${b.id}`)).status, 404);
   assert.equal((await call("dp", "GET", `/api/w/${wid}/influencers/duplicates`)).body.groups.length, 0);
 });
+
+test("calendar feed (.ics): launch dates, running campaigns, time zone, meeting length", async () => {
+  await call("calf", "POST", "/api/auth/register", { first_name: "Cal", last_name: "Feed", email: "calfeed@example.com", password: "password123" }, "10.9.9.30");
+  const wid = (await call("calf", "GET", "/api/me")).body.workspaces[0].id;
+  const day = n => { const d = new Date(); d.setUTCDate(d.getUTCDate() + n); return d.toISOString().slice(0, 10); };
+  const ymd = n => day(n).replace(/-/g, "");
+  await call("calf", "POST", `/api/w/${wid}/projects`, { name: "Launch only", launch_date: day(20) });
+  await call("calf", "POST", `/api/w/${wid}/projects`, { name: "Mirrored", launch_date: day(25), milestones: [{ id: "m1", label: "Launch day", key: "launch", date: day(25), done: false }] });
+  await call("calf", "POST", `/api/w/${wid}/campaigns`, { name: "Long running", status: "live", start_date: day(-120), end_date: day(60) });
+  await call("calf", "POST", `/api/w/${wid}/events`, { title: "No end time", event_date: day(4), start_time: "09:00" });
+  const tok = (await call("calf", "POST", "/api/me/calendar")).body.token;
+  const res = await app.inject({ method: "GET", url: `/api/cal/${tok}.ics` });
+  const ics = res.body.replace(/\r\n /g, "");
+  assert.match(ics, /BEGIN:VTIMEZONE\r\nTZID:Asia\/Bangkok/, "TZID times come with their VTIMEZONE");
+  assert.ok(ics.includes(`DTSTART;VALUE=DATE:${ymd(20)}\r\nDTEND;VALUE=DATE:${ymd(21)}\r\nSUMMARY:🚀 Launch only`), "a launch date without a launch milestone is in the feed");
+  assert.equal(ics.split("Mirrored").length - 1, 1, "a launch milestone and its launch date are not listed twice");
+  assert.ok(ics.includes(`DTSTART;VALUE=DATE:${ymd(-120)}\r\nDTEND;VALUE=DATE:${ymd(61)}\r\nSUMMARY:📣 Long running`), "a campaign that started months ago but is still running is in the feed");
+  assert.ok(ics.includes(`DTSTART;TZID=Asia/Bangkok:${ymd(4)}T090000\r\nDTEND;TZID=Asia/Bangkok:${ymd(4)}T100000`), "a meeting without an end time lasts one hour");
+});

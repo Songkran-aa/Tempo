@@ -190,10 +190,10 @@ async function sharedCalendarItems(pids, range) {
   const [tasks, events, camps, posts, projects] = await Promise.all([
     q(`select t.id, t.title, t.due_date as d, p.name as pname from tasks t join projects p on p.id=t.project_id where t.project_id = any($1) and t.due_date ${range} and t.status <> 'done'`),
     q(`select e.id, e.title, e.event_date as d, e.start_time, e.end_time, e.location, e.link, p.name as pname from events e join projects p on p.id=e.project_id where e.project_id = any($1) and e.event_date ${range}`),
-    q(`select c.id, c.name as title, c.start_date as d, c.end_date as d2, p.name as pname from campaigns c join projects p on p.id=c.project_id where c.project_id = any($1) and c.start_date ${range}`),
+    q(`select c.id, c.name as title, c.start_date as d, c.end_date as d2, p.name as pname from campaigns c join projects p on p.id=c.project_id where c.project_id = any($1) and ${running("c.")}`),
     q(`select c.id, i.name as title, c.post_date as d, p.name as pname from collaborations c join influencers i on i.id=c.influencer_id join campaigns k on k.id=c.campaign_id join projects p on p.id=k.project_id
        where k.project_id = any($1) and c.post_date ${range} and c.status not in ('posted','completed','declined')`),
-    q(`select id, name, milestones from projects where id = any($1)`)
+    q(`select id, name, milestones, launch_date from projects where id = any($1)`)
   ]);
   // the project name tells shared work apart from the user's own
   const out = [];
@@ -201,7 +201,7 @@ async function sharedCalendarItems(pids, range) {
   events.forEach(x => out.push({ uid: `event-${x.id}`, d: x.d, t1: x.start_time, t2: x.end_time, title: `${x.title} · ${x.pname}`, location: x.location, url: x.link }));
   camps.forEach(x => out.push({ uid: `camp-${x.id}`, d: x.d, d2: x.d2, title: `📣 ${x.title} · ${x.pname}` }));
   posts.forEach(x => out.push({ uid: `post-${x.id}`, d: x.d, title: `★ ${x.title} · ${x.pname}` }));
-  projects.forEach(p => (p.milestones || []).forEach(m => { if (m.date && !m.done) out.push({ uid: `ms-${p.id}-${m.id}`, d: m.date, title: `◆ ${m.label} · ${p.name}` }); }));
+  projects.forEach(p => projectDates(p, out));
   return out;
 }
 
@@ -217,11 +217,11 @@ export async function calendarItems(userId) {
   const [tasks, events, camps, contracts, expenses, posts, projects] = await Promise.all([
     q(`select id, title, due_date as d, status from tasks where workspace_id = any($1) and due_date ${range} and status <> 'done'`),
     q(`select id, title, event_date as d, start_time, end_time, location, link from events where workspace_id = any($1) and event_date ${range}`),
-    q(`select id, name as title, start_date as d, end_date as d2 from campaigns where workspace_id = any($1) and start_date ${range}`),
+    q(`select id, name as title, start_date as d, end_date as d2 from campaigns where workspace_id = any($1) and ${running("")}`),
     q(`select id, title, end_date as d from contracts where workspace_id = any($1) and status='active' and end_date ${range}`),
     q(`select id, title, due_date as d from expenses where workspace_id = any($1) and status in ('pending','approved') and due_date ${range}`),
     q(`select c.id, i.name as title, c.post_date as d from collaborations c join influencers i on i.id=c.influencer_id where c.workspace_id = any($1) and c.post_date ${range} and c.status not in ('posted','completed','declined')`),
-    q(`select id, name, milestones from projects where workspace_id = any($1)`)
+    q(`select id, name, milestones, launch_date from projects where workspace_id = any($1)`)
   ]);
   tasks.forEach(x => out.push({ uid: `task-${x.id}`, d: x.d, title: `☑ ${x.title}` }));
   events.forEach(x => out.push({ uid: `event-${x.id}`, d: x.d, t1: x.start_time, t2: x.end_time, title: x.title, location: x.location, url: x.link }));
@@ -229,12 +229,27 @@ export async function calendarItems(userId) {
   contracts.forEach(x => out.push({ uid: `contract-${x.id}`, d: x.d, title: `📄 ${x.title}` }));
   expenses.forEach(x => out.push({ uid: `exp-${x.id}`, d: x.d, title: `💸 ${x.title}` }));
   posts.forEach(x => out.push({ uid: `post-${x.id}`, d: x.d, title: `★ ${x.title}` }));
-  projects.forEach(p => (p.milestones || []).forEach(m => { if (m.date && !m.done) out.push({ uid: `ms-${p.id}-${m.id}`, d: m.date, title: `◆ ${m.label} · ${p.name}` }); }));
+  projects.forEach(p => projectDates(p, out));
   return out;
 }
 
+/* Milestones not done yet, plus the launch date when no dated launch milestone carries it (same rule as the web calendar). */
+function projectDates(p, out) {
+  const day = v => (v ? String(v).slice(0, 10) : "");
+  const ms = p.milestones || [];
+  ms.forEach(m => { if (m.date && !m.done) out.push({ uid: `ms-${p.id}-${m.id}`, d: m.date, title: `◆ ${m.label} · ${p.name}` }); });
+  const lm = ms.find(m => m.key === "launch");
+  if (p.launch_date && !(lm && day(lm.date) === day(p.launch_date))) out.push({ uid: `launch-${p.id}`, d: day(p.launch_date), title: `🚀 ${p.name}` });
+}
+// a campaign shows while any part of it falls in the window (long campaigns that started months ago included)
+const running = a => `coalesce(${a}end_date, ${a}start_date) >= current_date - 90 and ${a}start_date <= current_date + 366`;
+
 const icsEsc = s => String(s ?? "").replace(/\\/g, "\\\\").replace(/;/g, "\\;").replace(/,/g, "\\,").replace(/\r?\n/g, "\\n");
 const icsDate = d => String(d).slice(0, 10).replace(/-/g, "");
+const plusHour = t => { const [h, m] = String(t).split(":").map(Number); const x = Math.min(h * 60 + (m || 0) + 60, 23 * 60 + 59); return `${String(Math.floor(x / 60)).padStart(2, "0")}${String(x % 60).padStart(2, "0")}`; };
+const hm = t => String(t).slice(0, 5).replace(":", "");
+// Asia/Bangkok has no daylight saving: one STANDARD rule is a complete VTIMEZONE (RFC 5545 needs it for TZID= times)
+const VTZ = ["BEGIN:VTIMEZONE", "TZID:Asia/Bangkok", "BEGIN:STANDARD", "DTSTART:19700101T000000", "TZOFFSETFROM:+0700", "TZOFFSETTO:+0700", "TZNAME:ICT", "END:STANDARD", "END:VTIMEZONE"];
 const nextDay = d => { const x = new Date(String(d).slice(0, 10) + "T00:00:00Z"); x.setUTCDate(x.getUTCDate() + 1); return x.toISOString().slice(0, 10); };
 function fold(line) {
   const out = []; let s = line;
@@ -244,12 +259,14 @@ function fold(line) {
 export function toIcs(items, name) {
   const stamp = new Date().toISOString().replace(/[-:]/g, "").slice(0, 15) + "Z";
   const host = (config.appUrl || "tempo").replace(/^https?:\/\//, "");
-  const lines = ["BEGIN:VCALENDAR", "VERSION:2.0", "PRODID:-//Tempo//Team Calendar//TH", "CALSCALE:GREGORIAN", "METHOD:PUBLISH", `X-WR-CALNAME:${icsEsc(name)}`, "X-WR-TIMEZONE:Asia/Bangkok", "REFRESH-INTERVAL;VALUE=DURATION:PT1H"];
+  const lines = ["BEGIN:VCALENDAR", "VERSION:2.0", "PRODID:-//Tempo//Team Calendar//TH", "CALSCALE:GREGORIAN", "METHOD:PUBLISH", `X-WR-CALNAME:${icsEsc(name)}`, "X-WR-TIMEZONE:Asia/Bangkok", "REFRESH-INTERVAL;VALUE=DURATION:PT1H", ...VTZ];
   for (const it of items) {
     lines.push("BEGIN:VEVENT", `UID:${it.uid}@${host}`, `DTSTAMP:${stamp}`);
     if (it.t1) {
       const day = icsDate(it.d);
-      lines.push(`DTSTART;TZID=Asia/Bangkok:${day}T${it.t1.replace(":", "")}00`, `DTEND;TZID=Asia/Bangkok:${day}T${(it.t2 || it.t1).replace(":", "")}00`);
+      // no end time → one hour, so the meeting is not a zero-length blip in phone calendars
+      const end = it.t2 && hm(it.t2) > hm(it.t1) ? hm(it.t2) : plusHour(it.t1);
+      lines.push(`DTSTART;TZID=Asia/Bangkok:${day}T${hm(it.t1)}00`, `DTEND;TZID=Asia/Bangkok:${day}T${end}00`);
     } else {
       lines.push(`DTSTART;VALUE=DATE:${icsDate(it.d)}`, `DTEND;VALUE=DATE:${icsDate(nextDay(it.d2 && it.d2 >= it.d ? it.d2 : it.d))}`);
     }
