@@ -142,28 +142,6 @@ body.is-dragging{user-select:none;-webkit-user-select:none;cursor:grabbing}
 /* ---------- auth (full screen, no scroll) ---------- */
 html.auth-mode,html.auth-mode body{height:100%;overflow:hidden}
 .auth{display:grid;grid-template-columns:minmax(0,1.1fr) minmax(440px,1fr);height:100vh;height:100dvh;overflow:hidden;padding:0;place-items:stretch;min-height:0}
-.auth-brand-panel{position:relative;overflow:hidden;color:#fff;display:flex;align-items:center;padding:clamp(28px,5vw,76px);background:linear-gradient(150deg,#5B52F0 0%,#4F46E5 45%,#3A31C4 100%)}
-.ab-glow{position:absolute;border-radius:50%;filter:blur(70px);opacity:.55;pointer-events:none}
-.ab-glow.g1{width:440px;height:440px;background:#8B85FF;top:-140px;left:-140px}
-.ab-glow.g2{width:400px;height:400px;background:#FF6B4A;bottom:-160px;right:-90px}
-.ab-inner{position:relative;max-width:560px}
-.ab-logo{display:flex;align-items:center;gap:14px;margin-bottom:clamp(18px,5vh,48px)}
-.ab-logo b{font-size:28px;font-weight:800;letter-spacing:-.03em}
-.ab-logo .logo-img{box-shadow:0 14px 34px -10px rgba(0,0,0,.4)}
-.ab-inner h2{font-size:clamp(28px,3.3vw,46px);font-weight:800;letter-spacing:-.035em;line-height:1.14;margin:0 0 14px}
-.ab-inner p{font-size:clamp(15px,1.25vw,17px);opacity:.92;margin:0 0 clamp(16px,4vh,34px);max-width:480px}
-.ab-points{list-style:none;padding:0;margin:0;display:grid;gap:12px}
-.ab-points li{display:flex;gap:12px;align-items:center;font-weight:600;font-size:15px}
-.ab-points .ic{width:36px;height:36px;padding:9px;border-radius:12px;background:rgba(255,255,255,.18);box-sizing:border-box}
-.ab-cards{position:relative;height:150px;margin-top:clamp(18px,5vh,46px)}
-.ab-card{position:absolute;display:grid;gap:6px;padding:14px 16px;border-radius:18px;background:rgba(255,255,255,.18);-webkit-backdrop-filter:blur(16px);backdrop-filter:blur(16px);border:1px solid rgba(255,255,255,.32);box-shadow:0 20px 40px -20px rgba(0,0,0,.45);min-width:210px;color:#fff}
-.ab-card.c1{left:0;top:0;transform:rotate(-3deg)}
-.ab-card.c2{left:190px;top:58px;transform:rotate(2deg);min-width:240px}
-.ab-card .pill{background:rgba(255,255,255,.92);color:#16A34A;justify-self:start}
-.ab-card small{opacity:.85}
-.ab-card .dot{background:#fff}
-.ab-card .bar{background:rgba(255,255,255,.3)}
-.ab-card .bar i{background:#fff}
 .auth-form-panel{position:relative;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:24px clamp(20px,4vw,56px);overflow:hidden;min-height:0}
 .auth-top{position:absolute;top:16px;right:18px;z-index:2}
 .lang-btn{display:inline-flex;align-items:center;gap:6px;height:34px;padding:0 13px;border-radius:999px;background:var(--glass-strong);border:1px solid var(--glass-border);box-shadow:var(--spec);font-weight:650;font-size:13px;color:var(--label)}
@@ -186,7 +164,6 @@ html.auth-mode,html.auth-mode body{height:100%;overflow:hidden}
   .auth-head .only-compact{display:block;margin:0 auto 14px;width:64px;height:64px}
 }
 @media (max-height:760px){
-  .ab-cards{display:none}
   .auth-head{margin-bottom:14px}
   .auth-head h1{font-size:25px}
   .auth-head .only-compact{width:50px;height:50px;margin-bottom:10px}
@@ -680,3 +657,34 @@ html.pop-open,html:has(dialog[open]){overflow:hidden}
   .board{grid-auto-columns:min(82vw,320px)}
   .board>*{scroll-snap-align:start}
 }
+
+/* ---------- sign-in: brand panel (desktop) ----------
+   Calm and explanatory: what Tempo is, the four things it does, where the data lives. No decorative cards. */
+.auth-brand-panel{position:relative;overflow:hidden;display:flex;color:#E8E8F0;padding:clamp(36px,4.5vw,72px) clamp(36px,5vw,84px);
+  background:
+    radial-gradient(900px 520px at -10% -15%,rgba(var(--accent-rgb,88,86,214),.30),transparent 62%),
+    radial-gradient(700px 420px at 110% 115%,rgba(var(--accent-rgb,88,86,214),.14),transparent 60%),
+    radial-gradient(rgba(255,255,255,.055) 1px,transparent 1.2px) 0 0/22px 22px,
+    #0C0D18}
+.auth-brand-panel::after{content:"";position:absolute;inset:0;border-right:1px solid rgba(255,255,255,.06);pointer-events:none}
+.ab-inner{position:relative;display:flex;flex-direction:column;justify-content:space-between;gap:clamp(24px,4vh,48px);width:100%;max-width:600px;min-height:100%}
+.ab-logo{display:flex;align-items:center;gap:12px}
+.ab-logo b{font-size:20px;font-weight:750;letter-spacing:-.02em;color:#fff}
+.ab-copy{max-width:540px}
+.ab-eyebrow{margin:0 0 14px;font-size:12.5px;font-weight:650;letter-spacing:.08em;text-transform:uppercase;color:color-mix(in srgb,rgb(var(--accent-rgb,88,86,214)) 55%,#fff)}
+.ab-copy h2{margin:0 0 16px;font-size:clamp(30px,3.1vw,46px);font-weight:750;letter-spacing:-.03em;line-height:1.14;color:#fff;text-wrap:balance}
+.ab-lead{margin:0;font-size:clamp(15px,1.15vw,17px);line-height:1.6;color:rgba(232,232,240,.68);max-width:500px;text-wrap:pretty}
+.ab-features{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+.ab-features li{display:flex;gap:12px;align-items:flex-start;padding:16px;border-radius:16px;background:rgba(255,255,255,.035);border:1px solid rgba(255,255,255,.07)}
+.ab-fic{flex:none;display:grid;place-items:center;width:34px;height:34px;border-radius:10px;color:color-mix(in srgb,rgb(var(--accent-rgb,88,86,214)) 45%,#fff);background:rgba(var(--accent-rgb,88,86,214),.18)}
+.ab-features b{display:block;font-size:14.5px;font-weight:650;color:#fff;margin-bottom:3px}
+.ab-features span{display:block;font-size:13px;line-height:1.5;color:rgba(232,232,240,.58)}
+.ab-foot{margin:0;font-size:12.5px;color:rgba(232,232,240,.42)}
+.ab-main{display:flex;flex-direction:column;gap:clamp(24px,4.5vh,44px)}
+@media (max-height:760px){ .ab-features li{padding:12px 14px} .ab-copy h2{margin-bottom:10px} .ab-eyebrow{margin-bottom:10px} }
+@media (max-height:600px){ .ab-features li>div>span{display:none} .ab-features li{align-items:center} }
+@media (max-width:1180px) and (min-width:981px){ .ab-features{grid-template-columns:1fr} }
+/* the sign-in screen never scrolls on desktop: no empty scrollbar gutter on its right edge */
+html.auth-mode{scrollbar-gutter:auto}
+.ab-copy h2{white-space:pre-line}
+html[lang="th"] .ab-eyebrow,.ab-eyebrow:lang(th){letter-spacing:.01em;text-transform:none;font-size:13px}

@@ -9,20 +9,20 @@ export function renderAuth() {
   document.documentElement.classList.add("auth-mode");
   $("root").innerHTML = `<div class="auth">
     <section class="auth-brand-panel" aria-hidden="true">
-      <div class="ab-glow g1"></div><div class="ab-glow g2"></div>
       <div class="ab-inner">
-        <div class="ab-logo">${logoImg(64)}<b>Tempo</b></div>
-        <h2>${t("auth.heroTitle")}</h2>
-        <p>${t("auth.heroText")}</p>
-        <ul class="ab-points">
-          <li>${icon("gantt", 18)}<span>${t("auth.point1")}</span></li>
-          <li>${icon("star", 18)}<span>${t("auth.point2")}</span></li>
-          <li>${icon("users", 18)}<span>${t("auth.point3")}</span></li>
-        </ul>
-        <div class="ab-cards">
-          <div class="ab-card c1"><span class="pill c-green">● ${t("collabStatus.posted")}</span><b>@sample.creator</b><small>5.1M · TikTok</small></div>
-          <div class="ab-card c2"><span class="dot c-violet"></span><b>${t("auth.sampleCampaign")}</b><div class="bar"><i style="width:68%"></i></div></div>
+        <div class="ab-logo">${logoImg(40)}<b>Tempo</b></div>
+        <div class="ab-main">
+        <div class="ab-copy">
+          <p class="ab-eyebrow">${t("auth.heroEyebrow")}</p>
+          <h2>${t("auth.heroTitle")}</h2>
+          <p class="ab-lead">${t("auth.heroText")}</p>
         </div>
+        <ul class="ab-features">
+          ${[["folder", "auth.f1Title", "auth.f1Text"], ["star", "auth.f2Title", "auth.f2Text"], ["wallet", "auth.f3Title", "auth.f3Text"], ["calendar", "auth.f4Title", "auth.f4Text"]]
+            .map(([ic, title, text]) => `<li><span class="ab-fic">${icon(ic, 18)}</span><div><b>${t(title)}</b><span>${t(text)}</span></div></li>`).join("")}
+        </ul>
+        </div>
+        <p class="ab-foot">${t("auth.heroFoot")}</p>
       </div>
     </section>
     <section class="auth-form-panel">
