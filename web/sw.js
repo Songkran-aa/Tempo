@@ -1,6 +1,6 @@
 /* Tempo service worker โ€” caches the app shell so it opens instantly and installs as an app.
    API calls are never cached (always live data). Bump VERSION on every release. */
-const VERSION = "tempo-v1.12.0";
+const VERSION = "tempo-v1.13.0";
 const SHELL = [
   "/", "/index.html", "/manifest.webmanifest", "/css/app.css", "/css/tempo.css", "/css/erp.css",
   "/js/app.js", "/js/core.js", "/js/i18n.js", "/js/i18n-erp.js", "/js/api.js", "/js/store.js", "/js/ui.js", "/js/dnd.js", "/js/brands.js", "/js/thai.js",

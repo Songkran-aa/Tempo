@@ -1,7 +1,7 @@
 // Notifications inbox, the module launcher ("all apps") and the ERP "to handle" card on Home.
 import { S, D, esc, icon, ago, money, relDay, todayISO, daysTo, canEdit, isGuest, partner, modOn } from "../core.js";
-import { t } from "../i18n.js";
-import { openSheet, closeSheet } from "../ui.js";
+import { t, getLang } from "../i18n.js";
+import { openSheet, closeSheet, avatar } from "../ui.js";
 import { hooks, setUnread, fail } from "../store.js";
 import { api } from "../api.js";
 import { myApprovals } from "./finance.js";
@@ -52,19 +52,33 @@ export const inboxActions = {
 
 /* ---------------- launcher ---------------- */
 export function viewMore() {
-  const d = D();
-  const tiles = [
-    ["home", "home", "accent", ""], ["tasks", "checklist", "blue", d.tasks.filter(x => x.status !== "done").length],
-    ["calendar", "calendar", "red", calendarItems(todayISO(), todayISO()).length || ""],
-    ["projects", "folder", "orange", d.projects.length || ""], ["timeline", "gantt", "indigo", ""], ["campaigns", "megaphone", "pink", d.campaigns.length || ""],
-    ...(isGuest() ? [] : [["influencers", "star", "violet", d.influencerStats.total || ""], ["finance", "wallet", "green", myApprovals().length ? `${myApprovals().length} ⏳` : ""]]),
-    ...(modOn("partners") ? [["partners", "briefcase", "yellow", d.partners.length || ""]] : []),
-    ...(modOn("inventory") ? [["inventory", "box", "teal", lowStock().length ? `${lowStock().length} ⚠︎` : d.products.length || ""]] : [])
+  const d = D(), guest = isGuest();
+  const badge = (v, warn) => (v === "" || v == null || v === 0 ? "" : `<small class="${warn ? "warn" : ""}">${typeof v === "number" ? v.toLocaleString("en-US") : v}</small>`);
+  const tile = ([k, ic, c, b, warn]) => `<a class="app-tile" href="#${k}"><span class="app-ic c-${c}">${icon(ic, 26, 2.1)}</span><b>${t("nav." + k)}</b>${badge(b, warn)}</a>`;
+  // the tab bar already has home, projects, tasks and creators (a guest: calendar), so the menu does not repeat them
+  const work = [
+    ...(guest ? [] : [["calendar", "calendar", "red", calendarItems(todayISO(), todayISO()).length]]),
+    ["timeline", "gantt", "indigo", ""], ["campaigns", "megaphone", "pink", d.campaigns.length]
   ];
-  return `<div class="page-head"><div><p class="eyebrow"></p><h1 class="large-title">${t("nav.more")}</h1></div></div>
-    <div class="launcher">${tiles.map(([k, ic, c, badge]) => `<a class="app-tile" href="#${k}"><span class="app-ic c-${c}">${icon(ic, 26, 2.1)}</span><b>${t("nav." + k)}</b>${badge !== "" ? `<small>${typeof badge === "number" ? badge.toLocaleString("en-US") : badge}</small>` : ""}</a>`).join("")}
-    <button class="app-tile" data-act="inbox"><span class="app-ic c-gray">${icon("bell", 26, 2.1)}</span><b>${t("erp.notifications")}</b>${S.unread ? `<small>${S.unread}</small>` : ""}</button>
-    <button class="app-tile" data-act="settings"><span class="app-ic c-gray">${icon("gear", 26, 2.1)}</span><b>${t("settings.title")}</b></button></div>`;
+  const office = guest ? [] : [
+    ["finance", "wallet", "green", myApprovals().length ? `${myApprovals().length} ⏳` : "", myApprovals().length > 0],
+    ...(modOn("partners") ? [["partners", "briefcase", "yellow", d.partners.length]] : []),
+    ...(modOn("inventory") ? [["inventory", "box", "teal", lowStock().length ? `${lowStock().length} ⚠︎` : d.products.length, lowStock().length > 0]] : [])
+  ];
+  const dark = document.documentElement.dataset.theme === "dark";
+  const row = (act, ic, color, label, end = "") => `<button class="row" data-act="${act}" style="--inset:58px"><span class="r-icon c-${color}">${icon(ic, 15, 2.2)}</span><div class="r-main"><span class="r-title">${label}</span></div><span class="r-end">${end}${icon("chevR", 15)}</span></button>`;
+  return `<div class="page-head"><div><h1 class="large-title">${t("nav.more")}</h1></div></div>
+    <div class="list-title">${t("more.work")}</div><div class="launcher">${work.map(tile).join("")}</div>
+    ${office.length ? `<div class="list-title">${t("more.office")}</div><div class="launcher">${office.map(tile).join("")}</div>` : ""}
+    <div class="list-title">${t("more.account")}</div>
+    <div class="list glass">
+      <button class="row more-me" data-act="settings" style="--inset:72px">${avatar(S.user.name, 44, S.user.accent)}<div class="r-main"><span class="r-title">${esc(S.user.name)}</span><span class="r-sub">${esc(S.user.email)}</span></div><span class="r-end">${icon("chevR", 15)}</span></button>
+      ${row("inbox", "bell", "orange", t("erp.notifications"), S.unread ? `<span class="badge warn">${S.unread}</span>` : "")}
+      ${row("settings", "gear", "gray", t("settings.title"))}
+      ${row("quickLang", "globe", "blue", t("more.language"), `<span class="faint">${getLang() === "th" ? "ไทย" : "English"}</span>`)}
+      ${row("quickTheme", dark ? "sun" : "moon", "indigo", t(dark ? "theme.toLight" : "theme.toDark"))}
+      <button class="row danger-row-left" data-act="signOut" style="--inset:58px"><span class="r-icon c-red">${icon("logout", 15, 2.2)}</span><div class="r-main"><span class="r-title" style="color:var(--red)">${t("settings.signOut")}</span></div></button>
+    </div>`;
 }
 
 /* ---------------- home card: things that need someone ---------------- */

@@ -8,7 +8,7 @@ walk("web/js");
 const used = new Set();
 for (const f of files) {
   const src = fs.readFileSync(f, "utf8");
-  for (const m of src.matchAll(/["'`]((?:[a-z]+[A-Za-z]*)\.[A-Za-z_]+)["'`]/g)) if (/^(app|nav|common|confirm|date|time|auth|home|act|entity|bucket|view|board|filter|tasks|taskStatus|priority|camp|campStatus|objective|channel|inf|pipe|collabStatus|deal|platform|pet|tier|checkState|tl|projects|project|settings|role|theme|spot|toast|err|erp|notif|pkind|cst|mv|xk|xst|list)\./.test(m[1])) used.add(m[1]);
+  for (const m of src.matchAll(/["'`]((?:[a-z]+[A-Za-z]*)\.[A-Za-z_]+)["'`]/g)) if (/^(app|nav|common|confirm|date|time|auth|home|act|entity|bucket|view|board|filter|tasks|taskStatus|priority|camp|campStatus|objective|channel|inf|pipe|collabStatus|deal|platform|pet|tier|checkState|tl|projects|project|settings|role|theme|spot|toast|err|erp|notif|pkind|cst|mv|xk|xst|list|more)\./.test(m[1])) used.add(m[1]);
 }
 const dyn = {
   bucket: ["late", "today", "week", "doing", "later", "none"], nav: ["home", "tasks", "influencers", "campaigns", "projects", "timeline", "calendar", "finance", "inventory", "partners", "more"],

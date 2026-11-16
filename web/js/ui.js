@@ -46,7 +46,7 @@ export function filterUI(model, defs, extra = []) {
   };
 }
 export const filterActions = {
-  fPanel: el => openPopover(el, S.ui.fpanels?.[el.dataset.m]?.() || ""),
+  fPanel: el => { const m = el.dataset.m; openPopover(el, S.ui.fpanels?.[m]?.() || "", () => S.ui.fpanels?.[m]?.() || ""); },
   fUnset: el => { const f = S.ui[el.dataset.m]; f[el.dataset.v] = typeof f[el.dataset.v] === "boolean" ? false : ""; hooks.render(); },
   fClear: el => { const f = S.ui[el.dataset.m]; for (const k of S.ui.fkeys?.[el.dataset.m] || []) f[k] = typeof f[k] === "boolean" ? false : ""; if (el.dataset.m === "f") { S.ui.q = ""; S.ui.f.bucket = ""; } if (el.dataset.m === "cf") S.ui.cq = ""; closePopover(); hooks.render(); }
 };
@@ -217,14 +217,59 @@ export function island(msg, ic = "checkSmall", color = "green") {
 }
 
 /* ---------- popover ---------- */
-export function openPopover(anchor, html) {
-  const p = $("popover"); p.innerHTML = html; p.hidden = false;
-  const r = anchor.getBoundingClientRect(), w = p.offsetWidth, h = p.offsetHeight;
+/* Menus and filter panels.
+   Phones: a bottom sheet (full width, scrolls inside, closes on a tap outside) — it ignores page scroll and the
+   keyboard resizing the screen, which used to close it the moment a finger brushed the page.
+   Larger screens: a popover under its button that follows the button when the page scrolls.
+   refresh (optional) rebuilds the content after the view re-renders, so a filter panel stays open and current. */
+const phoneMenus = () => matchMedia("(max-width: 640px)").matches;
+let popAnchor = null, popRefresh = null, popBackdrop = null;
+function placePopover() {
+  const p = $("popover");
+  if (p.classList.contains("as-sheet")) { p.style.left = p.style.top = ""; return; }
+  if (!popAnchor?.isConnected) return;
+  const r = popAnchor.getBoundingClientRect(), w = p.offsetWidth, h = p.offsetHeight;
+  if (r.bottom < 0 || r.top > innerHeight) { closePopover(); return; } // its button scrolled away
   let left = r.right - w; if (left < 12) left = Math.min(r.left, innerWidth - w - 12);
   let top = r.bottom + 8; if (top + h > innerHeight - 12) top = Math.max(12, r.top - h - 8);
   p.style.left = Math.max(12, left) + "px"; p.style.top = top + "px";
 }
-export function closePopover() { const p = $("popover"); if (p) p.hidden = true; }
+export function openPopover(anchor, html, refresh = null) {
+  const p = $("popover"); p.innerHTML = html; p.hidden = false;
+  popAnchor = anchor; popRefresh = refresh;
+  const sheet = phoneMenus();
+  p.classList.toggle("as-sheet", sheet);
+  if (sheet) {
+    if (!popBackdrop) { popBackdrop = document.createElement("div"); popBackdrop.className = "pop-backdrop"; popBackdrop.addEventListener("click", closePopover); document.body.append(popBackdrop); }
+    popBackdrop.hidden = false;
+    document.documentElement.classList.add("pop-open");
+    p.scrollTop = 0;
+  }
+  placePopover();
+}
+export function closePopover() {
+  const p = $("popover"); if (!p || p.hidden) return;
+  p.hidden = true; popAnchor = popRefresh = null;
+  if (popBackdrop) popBackdrop.hidden = true;
+  document.documentElement.classList.remove("pop-open");
+}
+/** Page scrolled / window resized: phones keep the sheet; elsewhere the popover follows its button. */
+export function popoverViewportChanged() {
+  const p = $("popover"); if (!p || p.hidden || p.classList.contains("as-sheet")) return;
+  placePopover();
+}
+/** After a re-render: a panel that knows how to rebuild itself shows the current state; its button is found again. */
+export function refreshPopover() {
+  const p = $("popover"); if (!p || p.hidden || !popRefresh) return;
+  if (popAnchor && !popAnchor.isConnected) {
+    const sel = ["act", "m"].filter(k => popAnchor.dataset[k]).map(k => `[data-${k}="${popAnchor.dataset[k]}"]`).join("");
+    popAnchor = (sel && [...document.querySelectorAll(sel)].find(x => x.offsetParent)) || popAnchor;
+  }
+  const keep = p.scrollTop;
+  p.innerHTML = popRefresh();
+  p.scrollTop = keep;
+  placePopover();
+}
 
 export async function copyText(text) {
   try { await navigator.clipboard.writeText(text); island(t("toast.copied"), "copy", "blue"); }

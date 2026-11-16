@@ -2,7 +2,7 @@ import { S, D, $, esc, icon, logoImg, ACCENTS, isDone, proj, chOf, byKey, TASK_S
 import { t, setLang, getLang, initialLang } from "./i18n.js";
 import { api } from "./api.js";
 import { hooks, loadMe, loadWorkspace, reload, startSync, stopSync, fail, refreshUnread } from "./store.js";
-import { initSheet, island, closePopover, openPopover, avatar, listActions, commentActions, closeSheet, filterActions } from "./ui.js";
+import { initSheet, island, closePopover, openPopover, popoverViewportChanged, refreshPopover, avatar, listActions, commentActions, closeSheet, filterActions } from "./ui.js";
 import { initBoardDnD } from "./dnd.js";
 import { initThai } from "./thai.js";
 import { renderAuth, submitAuth, authActions } from "./views/auth.js";
@@ -23,9 +23,9 @@ import { viewMore, inboxActions, erpHomeCard } from "./views/inbox.js";
 // mobile: in the phone tab bar · hidden: routable but not in the menu (timeline is a tab of Projects) · module: optional, switched on in Settings
 const TABS = [
   { key: "home", icon: "home", mobile: true },
-  { key: "projects", icon: "folder", sep: true }, { key: "timeline", icon: "gantt", hidden: true }, { key: "tasks", icon: "checklist", mobile: true }, { key: "campaigns", icon: "megaphone" }, { key: "influencers", icon: "star", member: true },
-  { key: "calendar", icon: "calendar", mobile: true, sep: true },
-  { key: "finance", icon: "wallet", member: true, mobile: true, sep: true }, { key: "partners", icon: "briefcase", member: true, module: "partners" }, { key: "inventory", icon: "box", member: true, module: "inventory" },
+  { key: "projects", icon: "folder", sep: true, mobile: true }, { key: "timeline", icon: "gantt", hidden: true }, { key: "tasks", icon: "checklist", mobile: true }, { key: "campaigns", icon: "megaphone" }, { key: "influencers", icon: "star", member: true, mobile: true },
+  { key: "calendar", icon: "calendar", sep: true, guestMobile: true },
+  { key: "finance", icon: "wallet", member: true, sep: true }, { key: "partners", icon: "briefcase", member: true, module: "partners" }, { key: "inventory", icon: "box", member: true, module: "inventory" },
   { key: "more", icon: "grid", mobile: true, mobileOnly: true }
 ];
 
@@ -92,8 +92,12 @@ function renderChrome() {
   const alerts = { finance: appr, inventory: low };
   const link = x => `<a href="#${x.key}" ${active === x.key ? 'aria-current="page"' : ""}>${icon(x.icon, 20)}${t("nav." + x.key)}${alerts[x.key] ? `<span class="badge warn">${alerts[x.key]}</span>` : counts[x.key] ? `<span class="badge">${counts[x.key]}</span>` : ""}</a>`;
   $("nav").innerHTML = tabs().filter(x => !x.mobileOnly && !x.hidden).map(x => (x.sep ? `<hr class="nav-sep">` : "") + link(x)).join("");
-  const onMobile = new Set(tabs().filter(x => x.mobile).map(x => x.key));
-  $("tabbar").innerHTML = tabs().filter(x => x.mobile).map(x => `<a href="#${x.key}" ${active === x.key || (x.key === "more" && !onMobile.has(active)) ? 'aria-current="page"' : ""}>${icon(x.icon, 22)}<span>${t("nav." + x.key)}</span>${alerts[x.key] ? `<i class="tab-dot"></i>` : ""}</a>`).join("");
+  // phone tab bar: home · projects · tasks · creators (a project guest: calendar) · menu; the rest lives in the menu,
+  // which carries a dot when something in it needs you (approvals, low stock)
+  const mobileTabs = tabs().filter(x => x.mobile || (x.guestMobile && isGuest()));
+  const onMobile = new Set(mobileTabs.map(x => x.key));
+  const menuAlert = Object.entries(alerts).some(([k, n]) => n && !onMobile.has(k));
+  $("tabbar").innerHTML = mobileTabs.map(x => `<a href="#${x.key}" ${active === x.key || (x.key === "more" && !onMobile.has(active)) ? 'aria-current="page"' : ""}>${icon(x.icon, 22)}<span>${t("nav." + x.key)}</span>${alerts[x.key] || (x.key === "more" && menuAlert) ? `<i class="tab-dot"></i>` : ""}</a>`).join("");
   renderBell();
   const sideLink = p => `<a href="#project/${p.id}" ${id === p.id ? 'aria-current="page"' : ""} ${isSharedProject(p.id) ? `title="${esc(t("space.sharedBy", { name: sharedOwner(p.id) }))}"` : ""}><span>${esc(p.emoji || "📁")}</span><span class="t">${esc(p.name)}</span><small>${d.tasks.filter(x => x.project_id === p.id && !isDone(x)).length || ""}</small></a>`;
   const mineP = d.projects.filter(p => !isSharedProject(p.id)), sharedP = d.projects.filter(p => isSharedProject(p.id));
@@ -141,6 +145,7 @@ function render() {
   v.querySelectorAll("textarea.ie").forEach(autosize);
   if (keepId && $(keepId)) { $(keepId).focus({ preventScroll: true }); try { $(keepId).setSelectionRange(caret, caret); } catch {} }
   document.title = `${S.unread ? `(${S.unread}) ` : ""}${route.r === "project" ? proj(route.id)?.name : t("nav." + (VIEWS[route.r] ? route.r : "home"))} · Tempo`;
+  refreshPopover(); // an open filter panel shows what was just picked
 }
 const autosize = el => { el.style.height = "auto"; el.style.height = el.scrollHeight + "px"; };
 
@@ -268,8 +273,9 @@ document.addEventListener("keydown", e => {
   if (e.key === "/") { e.preventDefault(); openSpot(); }
   if (e.key.toLowerCase() === "n" && canEdit() && !e.metaKey && !e.ctrlKey) { e.preventDefault(); editTask(); }
 });
-window.addEventListener("resize", closePopover);
-window.addEventListener("scroll", closePopover, { passive: true });
+// phones show menus as a bottom sheet that ignores scrolling and the keyboard; elsewhere the popover follows its button
+window.addEventListener("resize", popoverViewportChanged);
+window.addEventListener("scroll", popoverViewportChanged, { passive: true });
 window.addEventListener("hashchange", () => {
   closePopover();
   if (location.hash.startsWith("#project/")) { S.ui.projTab = S.ui.nextTab || "overview"; S.ui.nextTab = ""; }

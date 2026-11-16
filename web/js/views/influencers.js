@@ -526,7 +526,7 @@ export function initInfluencerInputs() {
 export const infActions = {
   infView: el => { S.ui.infView = el.dataset.v; hooks.render(); },
   infType: el => { I().type = el.dataset.v; loadInfluencers(true); },
-  infFilter: el => openPopover(el, S.ui.infFilterPanel?.() || ""),
+  infFilter: el => openPopover(el, S.ui.infFilterPanel?.() || "", () => S.ui.infFilterPanel?.() || ""),
   infUnset: el => { const k = el.dataset.v; I()[k] = k === "blacklist" ? "exclude" : k === "contact" || k === "address" ? false : ""; loadInfluencers(true); },
   pickTog: el => {
     const on = !el.classList.contains("on"), box = el.closest("form, .sheet-body, #sheetBody") || document;
