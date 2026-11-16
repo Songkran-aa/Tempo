@@ -28,5 +28,5 @@ export const config = {
   mailFrom: env.MAIL_FROM || "Tempo <no-reply@localhost>",
   // Public address of the app, used for links in emails and calendar feeds (e.g. https://tempo.example.com)
   appUrl: (env.APP_URL || (env.DOMAIN ? "https://" + env.DOMAIN : "")).replace(/\/+$/, ""),
-  version: "1.13.2"
+  version: "1.13.3"
 };

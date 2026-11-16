@@ -2,18 +2,14 @@ import { S, $, esc, icon, logoImg } from "../core.js";
 import { t, getLang, setLang } from "../i18n.js";
 import { api } from "../api.js";
 import { errText, hooks } from "../store.js";
+import { askConfirm } from "../ui.js";
 
 export function renderAuth() {
   const mode = S.ui.authMode;
   const up = mode === "signup";
   document.documentElement.classList.add("auth-mode");
+  // one centred form on every screen size (desktop and phone share the same layout)
   $("root").innerHTML = `<div class="auth">
-    <section class="auth-brand-panel" aria-hidden="true">
-      <div class="ab-logo">${logoImg(32)}<b>Tempo</b></div>
-      <h2 class="ab-title">${t("auth.heroTitle")}</h2>
-      <!-- the product itself (a made-up workspace), in the viewer's language and theme -->
-      <div class="ab-shot"><img src="/assets/login/tempo-${getLang() === "th" ? "th" : "en"}-${document.documentElement.dataset.theme === "dark" ? "dark" : "light"}.webp" alt="" width="1262" height="800" loading="lazy" decoding="async"></div>
-    </section>
     <section class="auth-form-panel">
       <div class="auth-top">
         <button type="button" class="lang-btn" data-act="authLang" aria-label="Language">${icon("globe", 16)}${getLang() === "th" ? "EN" : "ไทย"}</button>
@@ -24,11 +20,11 @@ export function renderAuth() {
         <div class="auth-error" id="authError" role="alert" ${S.ui.authError ? "" : "hidden"}>${icon("alert", 16)}<span>${esc(S.ui.authError)}</span></div>
         <form id="authForm" novalidate>
           <div class="fgroup">
-            ${up ? `<div class="field-pair"><label class="field"><span>${icon("user", 18)}</span><input name="first_name" placeholder="${t("auth.firstName")}" autocomplete="given-name" required maxlength="60"></label><label class="field"><input name="last_name" placeholder="${t("auth.lastName")}" autocomplete="family-name" required maxlength="60"></label></div>` : ""}
-            <label class="field"><span>${icon("mail", 18)}</span><input name="email" type="email" placeholder="${t("auth.email")}" autocomplete="email" required inputmode="email"></label>
-            <label class="field"><span>${icon("lock", 18)}</span><input name="password" id="authPw" type="password" placeholder="${t("auth.password")}" autocomplete="${up ? "new-password" : "current-password"}" required minlength="${up ? 8 : 1}"><button type="button" class="pw-toggle" data-act="togglePw" aria-label="${t("auth.showPw")}">${icon("eye", 18)}</button></label>
+            ${up ? `<div class="field-pair"><label class="field"><em class="f-lab">${t("auth.firstName")}</em><span>${icon("user", 18)}</span><input name="first_name" placeholder="${t("auth.firstName")}" autocomplete="given-name" required maxlength="60"></label><label class="field"><em class="f-lab">${t("auth.lastName")}</em><input name="last_name" placeholder="${t("auth.lastName")}" autocomplete="family-name" required maxlength="60"></label></div>` : ""}
+            <label class="field"><em class="f-lab">${t("auth.email")}</em><span>${icon("mail", 18)}</span><input name="email" type="email" placeholder="${t("auth.email")}" autocomplete="email" required inputmode="email"></label>
+            <label class="field"><em class="f-lab">${t("auth.password")}</em><span>${icon("lock", 18)}</span><input name="password" id="authPw" type="password" placeholder="${t("auth.password")}" autocomplete="${up ? "new-password" : "current-password"}" required minlength="${up ? 8 : 1}"><button type="button" class="pw-toggle" data-act="togglePw" aria-label="${t("auth.showPw")}">${icon("eye", 18)}</button></label>
           </div>
-          <div class="auth-row">${up ? `<span class="faint small">${t("auth.pwHint")}${S.config.signup === false ? " · " + t("auth.inviteOnly") : ""}</span>` : `<label class="remember"><span class="switch sm"><input type="checkbox" name="remember" checked><span></span></span>${t("auth.remember")}</label>`}</div>
+          <div class="auth-row">${up ? `<span class="faint small">${t("auth.pwHint")}${S.config.signup === false ? " · " + t("auth.inviteOnly") : ""}</span>` : `<label class="remember"><span class="switch sm"><input type="checkbox" name="remember" checked><span></span></span>${t("auth.remember")}</label><button type="button" class="text-btn forgot" data-act="forgotPw">${t("auth.forgot")}</button>`}</div>
           <button class="btn filled lg" type="submit" id="authSubmit">${t(up ? "auth.createBtn" : "auth.signInBtn")}</button>
         </form>
         <p class="auth-note">${icon("lock", 13)}${t(up ? "auth.noteSignup" : "auth.noteSignin")}</p>
@@ -67,6 +63,8 @@ export async function submitAuth(form) {
 
 export const authActions = {
   authMode: el => { S.ui.authMode = el.dataset.v; S.ui.authError = ""; renderAuth(); },
+  // no password-reset email yet: an admin resets it (npm run user:reset-password), so say exactly that
+  forgotPw: () => askConfirm(t("auth.forgotTitle"), t("auth.forgotMsg"), t("common.ok"), false),
   authLang: () => { setLang(getLang() === "th" ? "en" : "th"); renderAuth(); },
   togglePw: el => { const i = $("authPw"); i.type = i.type === "password" ? "text" : "password"; el.innerHTML = icon(i.type === "password" ? "eye" : "eyeOff", 18); }
 };
