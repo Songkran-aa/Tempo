@@ -1,0 +1,13 @@
+node_modules/
+data/
+.env
+.env.local
+*.log
+# real influencer data must never be committed
+*.xlsx
+!web/**
+
+# server folders with real data
+restore/*
+!restore/.gitkeep
+backups/

@@ -1,0 +1,12 @@
+# Run behind your own reverse proxy / tunnel (no built-in Caddy, no ports 80/443 taken).
+# The app is published on the host at APP_PORT (default 3100); point your domain's proxy to http://<server-ip>:APP_PORT.
+# Enable it by adding this line to .env (compose reads it automatically):
+#   COMPOSE_FILE=docker-compose.yml:deploy/docker-compose.port.yml
+# Keep APP_REPLICAS=1 in this mode (one container owns the published port).
+# The proxy must serve the site over HTTPS: in production the session cookie is Secure.
+services:
+  app:
+    ports:
+      - "${APP_PORT:-3100}:3000"
+  caddy:
+    profiles: ["caddy"]   # disabled unless started with --profile caddy

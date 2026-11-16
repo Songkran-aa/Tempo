@@ -1,0 +1,43 @@
+{
+  "name": "tempo",
+  "version": "1.11.0",
+  "description": "Tempo — plan campaigns, manage influencers, launch together",
+  "main": "server/index.js",
+  "scripts": {
+    "start": "node server/index.js",
+    "dev": "node --watch server/index.js",
+    "test": "node --test server/test/*.test.js",
+    "check:i18n": "node scripts/check-i18n.mjs",
+    "check": "npm test && npm run check:i18n",
+    "migrate": "node server/migrate.js",
+    "user:create": "node server/scripts/create-user.js",
+    "user:reset-password": "node server/scripts/reset-password.js",
+    "import:workspace": "node server/scripts/import-workspace.js",
+    "import:influencers": "node server/scripts/import-influencers.js",
+    "import:projects": "node server/scripts/import-projects.js",
+    "convert": "node server/scripts/convert-to-tempo.js",
+    "verify": "node server/scripts/verify-workspace-file.js",
+    "backup": "node server/scripts/make-backup.js",
+    "logo": "node scripts/logo/logo-build.mjs"
+  },
+  "license": "MIT",
+  "type": "module",
+  "dependencies": {
+    "@electric-sql/pglite": "^0.5.16",
+    "@fastify/compress": "^9.3.0",
+    "@fastify/cookie": "^11.1.5",
+    "@fastify/helmet": "^13.2.0",
+    "@fastify/multipart": "^10.1.8",
+    "@fastify/rate-limit": "^11.2.2",
+    "@fastify/static": "^10.1.11",
+    "exceljs": "^4.4.0",
+    "fastify": "^5.12.8",
+    "jszip": "^3.10.1",
+    "pg": "^8.23.1",
+    "nodemailer": "^6.9.16"
+  },
+  "private": true,
+  "engines": {
+    "node": ">=20.12"
+  }
+}

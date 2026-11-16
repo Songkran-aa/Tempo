@@ -1,0 +1,9 @@
+{$DOMAIN} {
+	encode zstd gzip
+	# Load-balances across all app replicas (Docker DNS returns every container)
+	reverse_proxy app:3000 {
+		lb_policy round_robin
+		health_uri /api/health
+	}
+	header Strict-Transport-Security "max-age=31536000; includeSubDomains"
+}

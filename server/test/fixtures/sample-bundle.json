@@ -1,0 +1,57 @@
+{
+  "source": "Made-up sample data for tests — not a real company plan",
+  "statusMap": { "รอตรวจสอบ": "waiting", "BACKLOG": "todo", "IN PROGRESS": "doing", "WAITING FOR INPUT": "waiting", "REVIEW": "review", "APPROVED": "approved", "READY TO LAUNCH": "approved", "LAUNCHED": "done", "REPORT": "done", "COMPLETED": "done" },
+  "projects": [
+    {
+      "key": "sample-product-a", "name": "Sample Product A", "emoji": "📦", "color": "yellow",
+      "description": "แบรนด์ตัวอย่าง · สินค้าใหม่ · ข้อมูลสมมติสำหรับทดสอบ",
+      "milestones": ["ส่ง Artwork", "รอบผลิต", "สต๊อกพร้อม", "วันพร้อมขาย", "เริ่มเปลี่ยนผ่านแพ็ก", { "label": "วันเปิดตัว", "key": "launch" }, "ติดตามผล"],
+      "checklist": ["สเปก / เคลม", "ต้นทุนและราคา", "ช่องทางและคู่เทียบ", "Positioning และ Key Message", "แพ็กและ Artwork", "รอบผลิต", "สต๊อกพร้อมขาย", "แผนเปลี่ยนผ่านแพ็ก", "อนุมัติเปิดตัว", "แผนติดตามผล"],
+      "brief": [
+        ["Brand Territory", "พัฒนา Brand Territory / Framework ให้ชัดและสื่อความคุ้มค่า"],
+        ["Target", "สมมติฐาน: ลูกค้าที่มองหาความคุ้มค่า"],
+        ["Consumer Need", "สมมติฐาน: ต้องการทางเลือกใหม่ในราคาที่คุ้ม"],
+        ["Product Benefit", "สินค้าใหม่ที่เพิ่มทางเลือกให้ลูกค้า"],
+        ["Reason to Believe", ""],
+        ["Key Message", ""],
+        ["Proof Point", "รอข้อมูลสเปก เคลม ต้นทุน และราคาคู่เทียบ"],
+        ["Competitor Comparison", "เทียบกับสินค้าคู่แข่งในหมวดเดียวกัน"],
+        ["Sales Support Message", ""],
+        ["สิ่งที่ต้องตัดสินใจ", "จะขายให้ใคร และตั้งราคาอย่างไร"],
+        ["ข้อสรุปหลังประชุม", ""]
+      ],
+      "tasks": [
+        { "ref": "original-3", "title": "สเปกและจุดเด่นสินค้า", "stage": "สเปก/เคลม", "status": "รอตรวจสอบ", "team": "RD / Regulatory", "next": "ยืนยันสเปกและจุดเด่นที่ใช้สื่อสารได้", "note": "" },
+        { "ref": "original-4", "title": "ต้นทุนและราคา", "stage": "ต้นทุนและราคา", "status": "รอตรวจสอบ", "team": "Purchasing", "next": "ขอราคาต้นทุนต่อชิ้นและวันสรุปการเจรจา", "note": "ราคาอยู่ระหว่างเจรจา" },
+        { "ref": "original-5", "title": "คู่เทียบและช่องทาง", "stage": "คู่เทียบ", "status": "รอตรวจสอบ", "team": "Sales / E-commerce", "next": "ขอสินค้าคู่เทียบ ช่วงราคา และช่องทางเปิดตัว", "note": "" },
+        { "ref": "original-6", "title": "Product Positioning", "stage": "Product Positioning", "status": "รอตรวจสอบ", "team": "Marketing Manager", "next": "ทบทวนร่าง Positioning หลังได้ข้อมูลสเปกและราคา", "note": "" },
+        { "ref": "original-7", "title": "แพ็กและวันพร้อมขาย", "stage": "แพ็กและ Artwork", "status": "รอตรวจสอบ", "team": "Creative / Production", "next": "ขอวันล็อกแพ็กและวันที่สินค้าพร้อมขาย", "note": "" }
+      ]
+    },
+    {
+      "key": "sample-product-b", "name": "Sample Product B", "emoji": "✨", "color": "green",
+      "description": "แบรนด์ตัวอย่าง · รีแบรนด์สินค้าเดิม · ข้อมูลสมมติสำหรับทดสอบ",
+      "milestones": ["ส่ง Artwork", "รอบผลิต", "สต๊อกพร้อม", "วันพร้อมขาย", "เริ่มเปลี่ยนผ่านแพ็ก", { "label": "วันเปิดตัว", "key": "launch" }, "ติดตามผล"],
+      "checklist": ["สเปก / เคลม", "ต้นทุนและราคา", "ช่องทางและคู่เทียบ", "Positioning และ Key Message", "แพ็กและ Artwork", "รอบผลิต", "สต๊อกพร้อมขาย", "แผนเปลี่ยนผ่านแพ็ก", "อนุมัติเปิดตัว", "แผนติดตามผล"],
+      "brief": [
+        ["Brand Territory", "สินค้าสำหรับใช้ทุกวัน โดยเน้นลูกค้าเดิม"],
+        ["Target", "ลูกค้าเดิมของแบรนด์"],
+        ["Consumer Need", "ลูกค้าเดิมต้องรู้เรื่องใดเมื่อเปลี่ยนแพ็ก"],
+        ["Product Benefit", "ใช้ได้ทุกวัน มีให้เลือก 3 แบบ"],
+        ["Reason to Believe", ""],
+        ["Key Message", "ทิศทางร่าง: มีให้เลือก 3 แบบ"],
+        ["Proof Point", "รอตรวจสเปก ขนาด ราคา และแพ็กเดิม–ใหม่"],
+        ["Competitor Comparison", "เทียบสเปกเดิม–ใหม่"],
+        ["Sales Support Message", "ใช้ “แพ็กใหม่ สูตรเดิม” เมื่อยืนยันแล้วเท่านั้น"],
+        ["สิ่งที่ต้องตัดสินใจ", "เปลี่ยนอะไรบ้าง และต้องล็อกข้อความบนแพ็กวันไหน"],
+        ["ข้อสรุปหลังประชุม", ""]
+      ],
+      "tasks": [
+        { "ref": "original-8", "title": "เทียบสเปกเดิมและใหม่", "stage": "สเปก/เคลม", "status": "รอตรวจสอบ", "team": "RD / Regulatory", "next": "เทียบชื่อ สเปก ขนาด และเคลม", "note": "" },
+        { "ref": "original-9", "title": "เทียบแพ็กและวันส่ง Artwork", "stage": "แพ็กและ Artwork", "status": "รอตรวจสอบ", "team": "Creative / Production", "next": "ขอแพ็กเดิมและใหม่ พร้อมวันล็อกข้อความ", "note": "" },
+        { "ref": "original-10", "title": "Positioning และข้อความบนแพ็ก", "stage": "Product Positioning", "status": "รอตรวจสอบ", "team": "Marketing Manager / Regulatory", "next": "ยืนยันทิศทางและข้อความหลังเทียบสเปก", "note": "" },
+        { "ref": "original-11", "title": "แผนเปลี่ยนผ่านหน้าร้าน", "stage": "เปลี่ยนผ่านแพ็กเดิม–ใหม่", "status": "รอตรวจสอบ", "team": "Sales / E-commerce", "next": "เช็กสต๊อกแพ็กเดิมและช่วงที่จะขายซ้อนกับแพ็กใหม่", "note": "" }
+      ]
+    }
+  ]
+}

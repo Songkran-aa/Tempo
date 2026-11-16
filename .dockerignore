@@ -1,0 +1,12 @@
+node_modules
+data
+.env
+.env.*
+*.xlsx
+.git
+restore
+backups
+scripts
+README.md
+DEPLOY.md
+.claude

@@ -1,0 +1,59 @@
+<!doctype html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Tempo</title>
+<meta name="description" content="Tempo — วางแผนแคมเปญ ดูแลครีเอเตอร์ และเปิดตัวไปด้วยกัน">
+<meta name="theme-color" content="#F4F2FA">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="Tempo">
+<link rel="manifest" href="/manifest.webmanifest">
+<link rel="icon" type="image/svg+xml" href="/assets/logo-mark.svg">
+<link rel="icon" type="image/png" sizes="192x192" href="/assets/icon-192.png">
+<link rel="apple-touch-icon" href="/assets/apple-touch-icon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Noto+Sans+Thai:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/css/app.css">
+<link rel="stylesheet" href="/css/tempo.css">
+<link rel="stylesheet" href="/css/erp.css">
+</head>
+<body>
+<div id="root"></div>
+
+<dialog id="sheet" class="sheet">
+  <form id="sheetForm" novalidate>
+    <div class="grabber" aria-hidden="true"></div>
+    <header class="sheet-head">
+      <button type="button" class="nav-text" id="sheetCancel">ยกเลิก</button>
+      <h2 id="sheetTitle"></h2>
+      <button type="submit" class="nav-text strong" id="sheetSave">บันทึก</button>
+    </header>
+    <div class="sheet-body" id="sheetBody"></div>
+    <p class="form-error" id="sheetError" role="alert"></p>
+    <div class="sheet-foot" id="sheetFoot"></div>
+  </form>
+</dialog>
+
+<dialog id="alert" class="alert">
+  <div class="alert-body"><h3 id="alertTitle"></h3><p id="alertMsg"></p></div>
+  <input id="alertInput" class="alert-input" hidden>
+  <div class="alert-actions"><button type="button" id="alertCancel">ยกเลิก</button><button type="button" id="alertOk">ตกลง</button></div>
+</dialog>
+
+<dialog id="spot" class="spot">
+  <div class="spot-bar"><span id="spotIcon"></span><input id="spotInput" type="search" autocomplete="off"><kbd>esc</kbd></div>
+  <div class="spot-results" id="spotResults"></div>
+</dialog>
+
+<div id="popover" class="popover" hidden></div>
+<div id="island" class="island" role="status" aria-live="polite"></div>
+<input type="file" id="fileWs" accept=".xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" hidden>
+<input type="file" id="fileCsv" accept=".csv,text/csv" hidden>
+<input type="file" id="fileXlsx" accept=".xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" hidden>
+<script type="module" src="/js/app.js"></script>
+</body>
+</html>

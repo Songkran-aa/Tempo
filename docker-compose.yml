@@ -1,0 +1,62 @@
+# Production stack: PostgreSQL + Tempo (2 replicas) + Caddy (automatic HTTPS)
+name: tempo   # fixed project name → volumes are tempo_pgdata etc. no matter what the folder is called
+# 1) copy .env.example to .env and fill in DOMAIN and POSTGRES_PASSWORD
+# 2) docker compose up -d --build
+services:
+  db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      # database user/name can be overridden with POSTGRES_USER / POSTGRES_DB in .env
+      POSTGRES_DB: ${POSTGRES_DB:-tempo}
+      POSTGRES_USER: ${POSTGRES_USER:-tempo}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER}"]
+      interval: 10s
+      retries: 5
+
+  app:
+    build: .
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      NODE_ENV: production
+      DATABASE_URL: postgres://${POSTGRES_USER:-tempo}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB:-tempo}
+      DB_POOL_MAX: ${DB_POOL_MAX:-20}
+      ALLOW_SIGNUP: ${ALLOW_SIGNUP:-0}
+      SESSION_DAYS: ${SESSION_DAYS:-30}
+      # links in emails / calendar feed, and optional email notifications (SMTP)
+      APP_URL: ${APP_URL:-https://${DOMAIN}}
+      SMTP_URL: ${SMTP_URL:-}
+      MAIL_FROM: ${MAIL_FROM:-Tempo <no-reply@localhost>}
+    volumes:
+      # Tempo .xlsx files to import with server/scripts/import-workspace.js (read-only)
+      - ./restore:/app/restore:ro
+    deploy:
+      replicas: ${APP_REPLICAS:-2}
+    expose:
+      - "3000"
+
+  caddy:
+    image: caddy:2-alpine
+    restart: unless-stopped
+    depends_on: [app]
+    ports:
+      - "80:80"
+      - "443:443"
+    environment:
+      DOMAIN: ${DOMAIN:?set DOMAIN in .env}
+    volumes:
+      - ./deploy/Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+
+volumes:
+  pgdata:
+  caddy_data:
+  caddy_config:
