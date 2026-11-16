@@ -137,14 +137,19 @@ export default async function authRoutes(app) {
     return { user: publicUser(req.user), workspaces: await listWorkspaces(req.user.id) };
   });
 
-  // Registered accounts (name + email) for the "share project" picker. Signed-in users only.
+  // Suggestions for the "share project" picker: only people you already work with (a workspace or a shared
+  // project in common). Anyone can sign up, so this must never list every account on the server; sharing with
+  // anyone else still works by typing their email.
   app.get("/api/users", async req => {
     if (!req.user) throw new HttpError(401, "unauthorized", "Please sign in");
     const q = String(req.query?.q || "").trim().toLowerCase().slice(0, 100);
     const like = `%${q.replace(/[\\%_]/g, c => "\\" + c)}%`;
     const { rows } = await db.query(
-      `select id, name, email from users where id <> $1 and ($2 = '' or lower(email) like $3 or lower(name) like $3)
-       order by lower(name) limit 50`, [req.user.id, q, like]);
+      `select u.id, u.name, u.email from users u
+       where u.id <> $1 and ($2 = '' or lower(u.email) like $3 or lower(u.name) like $3)
+         and (u.id in (select m2.user_id from memberships m1 join memberships m2 on m2.workspace_id = m1.workspace_id where m1.user_id = $1 and m1.role <> 'guest')
+           or u.id in (select p2.user_id from project_members p1 join project_members p2 on p2.project_id = p1.project_id where p1.user_id = $1))
+       order by lower(u.name) limit 50`, [req.user.id, q, like]);
     return { users: rows };
   });
 

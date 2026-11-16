@@ -299,9 +299,9 @@ test("project sharing: guest sees only shared projects, editor/viewer rights, un
   const tA = (await call("own", "POST", `/api/w/${wid}/tasks`, { title: "task in A", project_id: pA })).body.item.id;
   const tB = (await call("own", "POST", `/api/w/${wid}/tasks`, { title: "task in B", project_id: pB })).body.item.id;
 
-  // the directory lists registered accounts (not yourself)
+  // the share picker only suggests people you already work with: a stranger is not listed (sharing by email still works)
   let r = await call("own", "GET", "/api/users?q=gus");
-  assert.deepEqual(r.body.users.map(u => u.email), ["gus@example.com"]);
+  assert.deepEqual(r.body.users, []);
   assert.equal((await call("anon2", "GET", "/api/users")).status, 401);
 
   // an email without an account waits as a project invite (listed for the owner, removable)
@@ -314,6 +314,7 @@ test("project sharing: guest sees only shared projects, editor/viewer rights, un
   assert.equal((await call("own", "GET", `/api/w/${wid}/bootstrap`)).body.shareInvites.length, 0);
   r = await call("own", "POST", `/api/w/${wid}/projects/${pA}/shares`, { email: "gus@example.com", role: "editor" });
   assert.equal(r.status, 200);
+  assert.deepEqual((await call("own", "GET", "/api/users?q=gus")).body.users.map(u => u.email), ["gus@example.com"], "once a project is shared, that person is suggested");
   await call("own", "POST", `/api/w/${wid}/projects/${pA}/shares`, { email: "vic@example.com", role: "viewer" });
 
   // the shared workspace shows up for the guest, with only project A in it
@@ -856,4 +857,19 @@ test("creator import from another tool: matched by TikTok handle, follower count
   assert.deepEqual([item.name, item.code, item.notes, item.tier], ["Glow Sister", "CR-77", "rate 8k / clip", "Macro"], "what the team typed is kept");
   const all = (await call("hm", "GET", `/api/w/${wid}/influencers?size=50`)).body.items.map(i => i.name).sort();
   assert.deepEqual(all, ["Glow Sister", "brand_new_creator"], "no duplicate of the matched creator");
+});
+
+test("open sign-up: a stranger gets a private space and cannot list other people", async () => {
+  await call("s1", "POST", "/api/auth/register", { first_name: "Stranger", last_name: "One", email: "stranger1@example.com", password: "password123" }, "10.9.9.40");
+  const me = (await call("s1", "GET", "/api/me")).body;
+  assert.equal(me.workspaces.length, 1, "only their own workspace");
+  assert.ok(me.workspaces[0].personal);
+  const all = (await call("s1", "GET", "/api/users")).body.users;
+  assert.deepEqual(all, [], "no other accounts are listed to someone who works with nobody");
+  assert.deepEqual((await call("s1", "GET", "/api/users?q=alice")).body.users, [], "searching by name finds nobody either");
+  const aliceWs = (await call("a", "GET", "/api/me")).body.workspaces[0].id;
+  assert.equal((await call("s1", "GET", `/api/w/${aliceWs}/bootstrap`)).status, 404, "another person's workspace is invisible");
+  // people who do work together still see each other in the share picker
+  const team = (await call("a", "GET", "/api/users")).body.users.map(u => u.email);
+  assert.ok(!team.includes("stranger1@example.com"), "a stranger never shows up in someone else's picker");
 });
